@@ -1,0 +1,23 @@
+[package]
+name = "xfce-rs-utils"
+version = "0.1.0"
+edition = "2021"
+authors = ["XFCE.rs Contributors"]
+description = "Core utilities for XFCE.rs desktop environment"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/your-username/xfce-rs"
+keywords = ["xfce", "utilities", "desktop", "helpers"]
+categories = ["os::unix-apis"]
+
+[dependencies]
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true, features = ["process", "fs"] }
+serde = { workspace = true }
+uuid = { workspace = true }
+regex = { workspace = true }
+sysinfo = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
