@@ -1,5 +1,5 @@
 use iced::widget::{column, container, row, text, text_input, scrollable, button, image, svg, stack, space};
-use iced::{Alignment, Element, Length, Task, Theme, Color};
+use iced::{Alignment, Element, Length, Task, Theme, Color, window};
 use freedesktop_desktop_entry::{DesktopEntry, Iter as DesktopIter};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command as StdCommand;
 use linicon;
 use xfce_rs_ui::styles;
+use xfce_rs_ui::colors;
 
 pub fn main() -> iced::Result {
     iced::application(AppFinder::new, AppFinder::update, AppFinder::view)
@@ -17,7 +18,7 @@ pub fn main() -> iced::Result {
             size: iced::Size::new(700.0, 500.0),
             position: iced::window::Position::Centered,
             transparent: true,
-            decorations: true,
+            decorations: false,
             ..Default::default()
         })
         .run()
@@ -28,12 +29,17 @@ struct AppFinder {
     query: String,
     apps: Vec<AppEntry>,
     filtered_apps: Vec<AppEntry>,
+    maximized: bool,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     QueryChanged(String),
     LaunchApp(String),
+    WindowDragged,
+    Minimize,
+    Maximize,
+    Close,
 }
 
 /// Represents the source of an icon to render differently in the view
@@ -60,13 +66,14 @@ impl AppFinder {
                 query: String::new(),
                 apps,
                 filtered_apps,
+                maximized: false,
             },
             Task::none(),
         )
     }
 
     fn title(&self) -> String {
-        String::from("XFCE.rs App Finder")
+        String::from("App Finder")
     }
 
     fn theme(&self) -> Theme {
@@ -114,10 +121,57 @@ impl AppFinder {
                 }
                 std::process::exit(0);
             }
+            Message::WindowDragged => {
+                 window::latest().and_then(|id| window::drag(id))
+            }
+            Message::Minimize => {
+                window::latest().and_then(|id| window::minimize(id, true))
+            }
+            Message::Maximize => {
+                self.maximized = !self.maximized;
+                let maximized = self.maximized;
+                window::latest().and_then(move |id| window::maximize(id, maximized))
+            }
+            Message::Close => {
+                window::latest().and_then(|id| window::close(id))
+            }
         }
     }
 
     fn view(&self) -> Element<'_, Message> {
+        let header = row![
+             row![
+                button(space().width(12).height(12))
+                    .on_press(Message::Close)
+                    .style(|theme, status| styles::window_control(theme, status, colors::CONTROL_CLOSE))
+                    .width(12).height(12),
+                button(space().width(12).height(12))
+                     .on_press(Message::Minimize)
+                     .style(|theme, status| styles::window_control(theme, status, colors::CONTROL_MIN))
+                     .width(12).height(12),
+                button(space().width(12).height(12))
+                     .on_press(Message::Maximize)
+                     .style(|theme, status| styles::window_control(theme, status, colors::CONTROL_MAX))
+                     .width(12).height(12),
+            ]
+            .spacing(8)
+            .padding(10),
+            
+            // Drag handle
+            // Title (Static text, clicks fall through to global MouseArea)
+            container(text("XFCE.rs App Finder")
+                    .size(14)
+                    .color(colors::TEXT_SECONDARY)
+                    .width(Length::Fill)
+                    .align_x(Alignment::Center))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_y(Alignment::Center)
+        ]
+        .height(40)
+        .align_y(Alignment::Center);
+
+
         let input = text_input("Search applications...", &self.query)
             .on_input(Message::QueryChanged)
             .padding(15)
@@ -160,10 +214,11 @@ impl AppFinder {
         );
 
         let main_content = column![
+            header,
             input,
             scrollable(content).height(Length::Fill)
         ]
-        .spacing(20)
+        .spacing(10) // Reduced spacing since header is there
         .padding(20);
 
         stack![
@@ -174,7 +229,13 @@ impl AppFinder {
             container(space()).width(Length::Fill).height(Length::Fill).style(|theme| styles::glass_highlight_bottom(theme)),
             container(space()).width(Length::Fill).height(Length::Fill).style(|theme| styles::glass_highlight_left(theme)),
             container(space()).width(Length::Fill).height(Length::Fill).style(|theme| styles::glass_highlight_right(theme)),
-            // Layer 3: Content
+
+            // Layer 3: Global Drag Listener (Transparent Button) - NOW ON TOP OF GLASS
+            // Layer 3: Global Drag Listener (Mouse Area) - NOW ON TOP OF GLASS
+            iced::widget::mouse_area(container(space()).width(Length::Fill).height(Length::Fill))
+                .on_press(Message::WindowDragged),
+
+            // Layer 4: Content (Blocks Drag Layer where content exists)
             container(main_content).width(Length::Fill).height(Length::Fill)
         ]
         .into()

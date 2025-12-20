@@ -25,6 +25,11 @@ pub mod colors {
 
     // Borders
     pub const GLASS_BORDER: Color = Color::from_rgba(1.0, 1.0, 1.0, 0.20);
+    
+    // Window Controls
+    pub const CONTROL_CLOSE: Color = Color::from_rgb(0.9, 0.35, 0.35);
+    pub const CONTROL_MIN: Color = Color::from_rgb(0.9, 0.7, 0.3);
+    pub const CONTROL_MAX: Color = Color::from_rgb(0.3, 0.7, 0.4);
 }
 
 /// Custom Styles for Iced Widgets
@@ -191,6 +196,27 @@ pub mod styles {
                 ..Default::default()
             },
             button::Status::Disabled => button::Style::default(),
+        }
+    }
+
+    /// Window Control Button (Mac-style blobs)
+    pub fn window_control(_theme: &iced::Theme, status: button::Status, color: Color) -> button::Style {
+        let base = button::Style {
+             background: Some(Background::Color(color)),
+             border: Border {
+                 color: Color::TRANSPARENT,
+                 width: 0.0,
+                 radius: 100.0.into(), // Circle
+             },
+             ..Default::default()
+        };
+
+        match status {
+            button::Status::Hovered => button::Style {
+                background: Some(Background::Color(Color { a: 0.8, ..color })),
+                 ..base
+            },
+            _ => base
         }
     }
 }
