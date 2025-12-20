@@ -45,3 +45,4 @@ dirs = "5.0"
 xdg = "2.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+linicon = "2.3"

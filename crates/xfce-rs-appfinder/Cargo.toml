@@ -23,6 +23,7 @@ xdg = { workspace = true }
 freedesktop-desktop-entry = { workspace = true }
 walkdir = { workspace = true }
 dirs = { workspace = true }
+linicon = { workspace = true }
 
 xfce-rs-config = { path = "../xfce-rs-config" }
 xfce-rs-utils = { path = "../xfce-rs-utils" }
