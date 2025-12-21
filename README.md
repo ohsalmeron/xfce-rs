@@ -31,7 +31,7 @@ XFCE.rs consists of several core components organized as a Cargo workspace:
 - **`xfce-rs-desktop`** - Desktop manager (replaces xfdesktop)
 - **`xfce-rs-panel`** - Panel system with plugin architecture
 - **`xfce-rs-thunar`** - File manager (replaces Thunar)
-- **`xfce-rs-appfinder`** - Application launcher and finder
+- **`navigator`** - System-wide launcher and finder
 
 ## 🚀 Quick Start
 

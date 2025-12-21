@@ -1,48 +1,31 @@
-[workspace]
-resolver = "2"
+[package]
+name = "navigator"
+version = "0.1.0"
+edition = "2021"
+authors = ["XFCE.rs Contributors"]
+description = "Navigator for XFCE.rs desktop environment"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/your-username/xfce-rs"
+keywords = ["xfce", "app-finder", "launcher", "search"]
+categories = ["gui"]
 
-members = [
-    "crates/xfce-rs-config",
-    "crates/xfce-rs-ipc",
-    "crates/xfce-rs-utils",
-    "crates/xfce-rs-ui",
-    "crates/xfce-rs-menu",
-    "crates/xfce-rs-wm",
-    "crates/xfce-rs-desktop",
-    "crates/xfce-rs-panel",
-    "crates/xfce-rs-thunar",
-    "crates/xfce-rs-appfinder",
-]
-
-[workspace.dependencies]
+[dependencies]
+iced = { version = "0.14", features = ["canvas", "tokio", "image", "svg"] }
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-log = "0.4"
-env_logger = "0.10"
-anyhow = "1.0"
-thiserror = "1.0"
-toml = "0.8"
-config = "0.14"
-uuid = { version = "1.6", features = ["v4", "serde"] }
-zbus = "4.0"
-notify = "6.0"
-walkdir = "2.5"
-sysinfo = "0.30"
-raqote = "0.8"
-png = "0.17"
-svg = "0.15"
-regex = "1.10"
-smithay = "0.3"
-
-# Native GUI & Performance
-iced = { version = "0.14", features = ["canvas", "tokio", "image", "svg"] }
-winit = "0.30"
-wgpu = "0.19"
-freedesktop-desktop-entry = "0.7"
-fuzzy-matcher = "0.3"
-dirs = "5.0"
-xdg = "2.5"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "1.0"
+anyhow = "1.0"
+fuzzy-matcher = "0.3"
+regex = "1.10"
+xdg = "2.5"
+freedesktop-desktop-entry = "0.7"
+walkdir = "2.5"
+dirs = "5.0"
 linicon = "2.3"
+rusqlite = "0.31"
+chrono = "0.4"
+
+[dev-dependencies]
+tempfile = "3.8"
