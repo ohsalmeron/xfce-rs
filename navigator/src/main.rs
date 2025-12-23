@@ -2,26 +2,23 @@ use iced::widget::{
     column, container, row, text, text_input, scrollable, button, image, svg, space,
     mouse_area,
 };
-use iced::{Alignment, Element, Length, Task, Theme, Color, window, Point, Subscription};
+use iced::{Alignment, Element, Length, Task, Theme, Color, window, Point};
 use freedesktop_desktop_entry::{DesktopEntry, Iter as DesktopIter};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use std::path::{Path, PathBuf};
 use std::process::Command as StdCommand;
-use std::sync::mpsc;
 use linicon;
-mod theme;
-mod hotkey_daemon;
-use theme::{styles, colors};
+use xfce_rs_ui::styles;
+use xfce_rs_ui::colors;
 
 pub fn main() -> iced::Result {
     iced::application(Navigator::new, Navigator::update, Navigator::view)
         .title(Navigator::title)
         .theme(Navigator::theme)
         .style(Navigator::style)
-        .subscription(Navigator::subscription)
         .window(iced::window::Settings {
-            size: iced::Size::new(800.0, 600.0),
+            size: iced::Size::new(800.0, 600.0), // Increased size for new features
             position: iced::window::Position::Centered,
             transparent: true,
             decorations: false,
@@ -37,11 +34,9 @@ struct Navigator {
     favorites: Vec<AppEntry>,
     suggestions: Vec<AppEntry>,
     maximized: bool,
-    visible: bool,
     context_menu: Option<ContextMenu>,
     notification: Option<String>,
     last_mouse_pos: Point,
-    hotkey_rx: Option<mpsc::Receiver<hotkey_daemon::DaemonMessage>>,
 }
 
 #[derive(Debug, Clone)]
@@ -65,8 +60,6 @@ enum Message {
     ShowMoreSuggestions,
     MouseMoved(Point),
     RightClickApp(AppEntry),
-    ToggleVisibility,
-    HotkeyTick,
 }
 
 /// Represents the source of an icon to render differently in the view
@@ -92,9 +85,6 @@ impl Navigator {
         // Mock favorites for now
         let favorites = apps.iter().take(5).cloned().collect();
         let suggestions = apps.iter().skip(10).take(6).cloned().collect();
-        
-        // Start hotkey daemon
-        let hotkey_rx = hotkey_daemon::start_daemon();
 
         (
             Self {
@@ -104,20 +94,12 @@ impl Navigator {
                 favorites,
                 suggestions,
                 maximized: false,
-                visible: true,
                 context_menu: None,
                 notification: None,
                 last_mouse_pos: Point::ORIGIN,
-                hotkey_rx,
             },
             Task::none(),
         )
-    }
-    
-    fn subscription(&self) -> Subscription<Message> {
-        // Poll for hotkey daemon messages every 50ms
-        iced::time::every(std::time::Duration::from_millis(50))
-            .map(|_| Message::HotkeyTick)
     }
 
     fn title(&self) -> String {
@@ -161,13 +143,24 @@ impl Navigator {
                     .replace("%u", "").replace("%U", "")
                     .trim().to_string();
                 
-                let parts: Vec<&str> = cleaned.split_whitespace().collect();
-                if !parts.is_empty() {
-                    let _ = StdCommand::new(parts[0])
-                        .args(&parts[1..])
-                        .spawn();
+                // Execute through shell to handle complex commands, environment variables, and shell syntax
+                // Desktop entries often contain commands like "env VAR=value app" or shell constructs
+                let result = StdCommand::new("sh")
+                    .arg("-c")
+                    .arg(&cleaned)
+                    .spawn();
+                
+                match result {
+                    Ok(_) => {
+                        tracing::debug!("Successfully launched: {}", cleaned);
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to launch '{}': {}", cleaned, e);
+                        // Could show a notification to the user here
+                    }
                 }
-                // Minimize instead of exit so the app stays running
+                
+                // Hide window instead of exiting to keep app alive
                 window::latest().and_then(|id| window::minimize(id, true))
             }
             Message::WindowDragged => {
@@ -184,7 +177,6 @@ impl Navigator {
             Message::Close => {
                 window::latest().and_then(|id| window::close(id))
             }
-
             Message::CloseContextMenu => {
                 self.context_menu = None;
                 Task::none()
@@ -219,32 +211,11 @@ impl Navigator {
                 self.context_menu = Some(ContextMenu { app, position: self.last_mouse_pos });
                 Task::none()
             }
-            Message::ToggleVisibility => {
-                self.visible = !self.visible;
-                if self.visible {
-                    // Show window: unminimize and focus
-                    window::latest().and_then(|id| {
-                        window::gain_focus(id)
-                    })
-                } else {
-                    // Hide window: minimize
-                    window::latest().and_then(|id| window::minimize(id, true))
-                }
-            }
-            Message::HotkeyTick => {
-                // Check for hotkey daemon messages
-                if let Some(ref rx) = self.hotkey_rx {
-                    if let Ok(hotkey_daemon::DaemonMessage::ToggleVisibility) = rx.try_recv() {
-                        return self.update(Message::ToggleVisibility);
-                    }
-                }
-                Task::none()
-            }
         }
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let logo_path = "src/navigator-icon.svg";
+        let logo_path = "crates/navigator/src/navigator-icon.svg";
         
         let header = row![
              // Buttons
