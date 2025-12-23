@@ -55,6 +55,9 @@ struct AudioApp {
     // UI state
     show_devices: bool,
     notification: Option<String>,
+    
+    // Debouncing for app volume updates
+    pending_app_volume_updates: std::collections::HashMap<u32, f32>,
 }
 
 
@@ -73,6 +76,7 @@ enum Message {
     ToggleDevices,
     ToggleAppVolumes,
     AppVolumeChanged(u32, f32),
+    AppVolumeChangedDebounced(u32, f32), // Debounced version that actually calls PulseAudio
     AppMuteToggled(u32),
     SinkInputsUpdate(Vec<sink_inputs::SinkInput>),
     NowPlayingUpdate(Option<NowPlaying>),
@@ -104,6 +108,7 @@ impl AudioApp {
                 show_app_volumes: true, // Show by default
                 show_devices: false,
                 notification: None,
+                pending_app_volume_updates: std::collections::HashMap::new(),
             },
             Task::batch(vec![
                 // Initialize PulseAudio connection
@@ -275,10 +280,42 @@ impl AudioApp {
                     )
                 }
             Message::AppVolumeChanged(index, volume) => {
+                // Update UI immediately for smooth slider movement
+                if let Some(input) = self.sink_inputs.iter_mut().find(|i| i.index == index) {
+                    input.volume = volume;
+                }
+                
+                // Store pending update for debouncing
+                self.pending_app_volume_updates.insert(index, volume);
+                
+                // Schedule debounced update after 50ms for smoother feel
+                let index_clone = index;
                 Task::perform(
-                    sink_inputs::set_sink_input_volume(index, volume),
-                    |_| Message::ClearNotification,
+                    async move {
+                        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                        (index_clone, volume)
+                    },
+                    |(idx, vol)| Message::AppVolumeChangedDebounced(idx, vol),
                 )
+            }
+            Message::AppVolumeChangedDebounced(index, volume) => {
+                // Only apply if this is still the latest value (not overwritten)
+                if let Some(&latest_volume) = self.pending_app_volume_updates.get(&index) {
+                    if (latest_volume - volume).abs() < 0.1 {
+                        // This is still the latest, apply it
+                        self.pending_app_volume_updates.remove(&index);
+                        Task::perform(
+                            sink_inputs::set_sink_input_volume(index, volume),
+                            |_| Message::ClearNotification,
+                        )
+                    } else {
+                        // A newer update came in, ignore this one
+                        Task::none()
+                    }
+                } else {
+                    // Already processed or cancelled
+                    Task::none()
+                }
             }
             Message::AppMuteToggled(index) => {
                 let muted = self.sink_inputs.iter()

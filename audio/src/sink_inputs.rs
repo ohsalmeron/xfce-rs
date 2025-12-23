@@ -114,19 +114,22 @@ impl SinkInputManager {
     }
 
     pub async fn set_sink_input_volume(&self, index: u32, volume: f32) -> Result<()> {
-        // Update local cache immediately for UI responsiveness
-        {
-            let mut inputs = self.inputs.lock().unwrap();
-            if let Some(input) = inputs.get_mut(&index) {
-                input.volume = volume;
-            }
-        }
+        // Note: UI state is updated immediately in main.rs for smooth slider movement
+        // This function only updates PulseAudio
         
         // Set volume in PulseAudio
         let volume_clone = volume;
         tokio::task::spawn_blocking(move || {
             Self::set_sink_input_volume_blocking(index, volume_clone)
         }).await.map_err(|e| anyhow::anyhow!("Task error: {}", e))??;
+        
+        // Update cache after successful PulseAudio update
+        {
+            let mut inputs = self.inputs.lock().unwrap();
+            if let Some(input) = inputs.get_mut(&index) {
+                input.volume = volume;
+            }
+        }
         
         Ok(())
     }
@@ -139,7 +142,7 @@ impl SinkInputManager {
         let mut controller = SinkController::create()
             .map_err(|e| anyhow::anyhow!("Failed to create SinkController: {}", e))?;
         
-        // Get current app info
+        // Get current app info to get channel map and current volume
         let mut app = controller.get_app_by_index(index)
             .map_err(|e| anyhow::anyhow!("Failed to get app by index {}: {}", index, e))?;
         
@@ -154,7 +157,7 @@ impl SinkInputManager {
         let current_percent = (current_vol.0 as f32 / PA_VOLUME_NORM as f32) * 100.0;
         let delta_percent = volume - current_percent;
         
-        // If already close to target, skip
+        // If already close to target, skip (optimization)
         if delta_percent.abs() < 0.1 {
             return Ok(());
         }
@@ -187,7 +190,7 @@ impl SinkInputManager {
         controller.handler.wait_for_operation(op)
             .map_err(|e| anyhow::anyhow!("Failed to set volume: {}", e))?;
         
-        info!("Set sink input {} volume to {:.1}%", index, volume);
+        debug!("Set sink input {} volume to {:.1}%", index, volume);
         Ok(())
     }
 
