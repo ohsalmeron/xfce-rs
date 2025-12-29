@@ -5,6 +5,7 @@ use iced::widget::{
 use iced::{Alignment, Element, Length, Task, Theme, Color, window, Subscription};
 use xfce_rs_ui::styles;
 use xfce_rs_ui::colors;
+use tracing::{debug, warn, info};
 
 mod pulseaudio;
 mod mpris;
@@ -12,9 +13,16 @@ mod devices;
 mod notifications;
 mod sink_inputs;
 
-use audio::{AudioDevice, NowPlaying};
+use audio::{AudioDevice, AudioDeviceDetails, DevicePort, NowPlaying};
 
 pub fn main() -> iced::Result {
+    // Initialize tracing subscriber for logging
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+    
+    info!("Audio application starting");
+    
     iced::application(AudioApp::new, AudioApp::update, AudioApp::view)
         .title(AudioApp::title)
         .theme(AudioApp::theme)
@@ -47,6 +55,8 @@ struct AudioApp {
     input_devices: Vec<AudioDevice>,
     selected_output: Option<usize>,
     selected_input: Option<usize>,
+    selected_output_details: Option<AudioDeviceDetails>,
+    selected_input_details: Option<AudioDeviceDetails>,
     
     // Per-app volume controls
     sink_inputs: Vec<sink_inputs::SinkInput>,
@@ -58,14 +68,21 @@ struct AudioApp {
     
     // Debouncing for app volume updates
     pending_app_volume_updates: std::collections::HashMap<u32, f32>,
+    // Debouncing for master volume updates
+    pending_master_volume: Option<f32>,
+    pending_mic_volume: Option<f32>,
+    // MPRIS metadata per sink input (keyed by application_name)
+    sink_input_mpris_metadata: std::collections::HashMap<String, NowPlaying>,
 }
 
 
 #[derive(Debug, Clone)]
 enum Message {
     VolumeChanged(f32),
+    VolumeChangedDebounced(f32), // Debounced version that actually calls PulseAudio
     ToggleMute,
     MicVolumeChanged(f32),
+    MicVolumeChangedDebounced(f32), // Debounced version that actually calls PulseAudio
     ToggleMicMute,
     PlayPause,
     Previous,
@@ -73,7 +90,12 @@ enum Message {
     Seek(u64),
     SelectOutputDevice(usize),
     SelectInputDevice(usize),
+    OutputDeviceDetailsUpdate(Option<AudioDeviceDetails>),
+    InputDeviceDetailsUpdate(Option<AudioDeviceDetails>),
+    SetOutputPort(u32, String),
+    SetInputPort(u32, String),
     ToggleDevices,
+    #[allow(dead_code)]
     ToggleAppVolumes,
     AppVolumeChanged(u32, f32),
     AppVolumeChangedDebounced(u32, f32), // Debounced version that actually calls PulseAudio
@@ -104,51 +126,138 @@ impl AudioApp {
                 input_devices: Vec::new(),
                 selected_output: None,
                 selected_input: None,
+                selected_output_details: None,
+                selected_input_details: None,
                 sink_inputs: Vec::new(),
                 show_app_volumes: true, // Show by default
                 show_devices: false,
                 notification: None,
                 pending_app_volume_updates: std::collections::HashMap::new(),
+                pending_master_volume: None,
+                pending_mic_volume: None,
+                sink_input_mpris_metadata: std::collections::HashMap::new(),
             },
             Task::batch(vec![
                 // Initialize PulseAudio connection
                 Task::perform(
                     async {
-                        pulseaudio::init().await.ok();
+                        debug!("Initializing PulseAudio connection...");
+                        if let Err(e) = pulseaudio::init().await {
+                            warn!("Failed to initialize PulseAudio: {}", e);
+                        } else {
+                            debug!("PulseAudio initialized successfully");
+                        }
                         // Get initial volume state
-                        pulseaudio::get_volume().await.unwrap_or((50.0, false))
+                        let vol_result = pulseaudio::get_volume().await;
+                        match vol_result {
+                            Ok((vol, muted)) => {
+                                debug!("Initial volume: {:.1}%, muted: {}", vol, muted);
+                                (vol, muted)
+                            }
+                            Err(e) => {
+                                warn!("Failed to get initial volume: {}", e);
+                                (50.0, false)
+                            }
+                        }
                     },
-                    |(vol, muted)| Message::VolumeUpdate(vol, muted),
+                    |(vol, muted)| {
+                        debug!("VolumeUpdate message: {:.1}%, muted: {}", vol, muted);
+                        Message::VolumeUpdate(vol, muted)
+                    },
                 ),
                 // Initialize MPRIS
                 Task::perform(
                     async {
-                        mpris::init().await.ok();
+                        debug!("Initializing MPRIS connection...");
+                        if let Err(e) = mpris::init().await {
+                            warn!("Failed to initialize MPRIS: {}", e);
+                        } else {
+                            debug!("MPRIS initialized successfully");
+                        }
                         // Get initial now playing state
-                        mpris::get_now_playing().await.ok().flatten()
+                        match mpris::get_now_playing().await {
+                            Ok(Some(np)) => {
+                                debug!("Initial now playing: {} - {}", np.artist, np.title);
+                                Some(np)
+                            }
+                            Ok(None) => {
+                                debug!("No active MPRIS player");
+                                None
+                            }
+                            Err(e) => {
+                                warn!("Failed to get initial now playing: {}", e);
+                                None
+                            }
+                        }
                     },
-                    |np| Message::NowPlayingUpdate(np),
+                    |np| {
+                        if let Some(ref np) = np {
+                            debug!("NowPlayingUpdate message: {} - {}", np.artist, np.title);
+                        } else {
+                            debug!("NowPlayingUpdate message: None");
+                        }
+                        Message::NowPlayingUpdate(np)
+                    },
                 ),
                 // Get initial devices
                 Task::perform(
                     async {
-                        pulseaudio::get_devices().await.unwrap_or((Vec::new(), Vec::new()))
+                        debug!("Fetching initial device list...");
+                        match pulseaudio::get_devices().await {
+                            Ok((outputs, inputs)) => {
+                                debug!("Initial devices: {} outputs, {} inputs", outputs.len(), inputs.len());
+                                (outputs, inputs)
+                            }
+                            Err(e) => {
+                                warn!("Failed to get initial devices: {}", e);
+                                (Vec::new(), Vec::new())
+                            }
+                        }
                     },
-                    |(outputs, inputs)| Message::DevicesUpdate(outputs, inputs),
+                    |(outputs, inputs)| {
+                        debug!("DevicesUpdate message: {} outputs, {} inputs", outputs.len(), inputs.len());
+                        Message::DevicesUpdate(outputs, inputs)
+                    },
                 ),
                 // Get initial mic volume
                 Task::perform(
                     async {
-                        pulseaudio::get_mic_volume().await.unwrap_or((50.0, false))
+                        debug!("Fetching initial mic volume...");
+                        match pulseaudio::get_mic_volume().await {
+                            Ok((vol, muted)) => {
+                                debug!("Initial mic volume: {:.1}%, muted: {}", vol, muted);
+                                (vol, muted)
+                            }
+                            Err(e) => {
+                                warn!("Failed to get initial mic volume: {}", e);
+                                (50.0, false)
+                            }
+                        }
                     },
-                    |(vol, muted)| Message::MicVolumeUpdate(vol, muted),
+                    |(vol, muted)| {
+                        debug!("MicVolumeUpdate message: {:.1}%, muted: {}", vol, muted);
+                        Message::MicVolumeUpdate(vol, muted)
+                    },
                 ),
                 // Get initial sink inputs (app volumes)
                 Task::perform(
                     async {
-                        sink_inputs::get_sink_inputs().await.unwrap_or_default()
+                        debug!("Fetching initial sink inputs (app volumes)...");
+                        match sink_inputs::get_sink_inputs().await {
+                            Ok(inputs) => {
+                                debug!("Initial sink inputs: {} applications", inputs.len());
+                                inputs
+                            }
+                            Err(e) => {
+                                warn!("Failed to get initial sink inputs: {}", e);
+                                Vec::new()
+                            }
+                        }
                     },
-                    |inputs| Message::SinkInputsUpdate(inputs),
+                    |inputs| {
+                        debug!("SinkInputsUpdate message: {} applications", inputs.len());
+                        Message::SinkInputsUpdate(inputs)
+                    },
                 ),
             ]),
         )
@@ -170,20 +279,49 @@ impl AudioApp {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        // Poll for updates every 500ms
-        iced::time::every(std::time::Duration::from_millis(500))
+        // Poll for updates every 2 seconds (reduced from 500ms for better performance)
+        iced::time::every(std::time::Duration::from_secs(2))
             .map(|_| Message::PollUpdates)
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::VolumeChanged(vol) => {
+                // Update UI immediately for smooth slider movement
                 self.volume = vol;
-                let muted = self.muted;
+                
+                // Store pending update for debouncing
+                self.pending_master_volume = Some(vol);
+                
+                // Schedule debounced update after 50ms
+                let vol_clone = vol;
                 Task::perform(
-                    pulseaudio::set_volume(vol),
-                    move |_| Message::VolumeUpdate(vol, muted),
+                    async move {
+                        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                        vol_clone
+                    },
+                    |v| Message::VolumeChangedDebounced(v),
                 )
+            }
+            Message::VolumeChangedDebounced(vol) => {
+                // Only apply if this is still the latest value
+                if let Some(&latest_vol) = self.pending_master_volume.as_ref() {
+                    if (latest_vol - vol).abs() < 0.1 {
+                        // This is still the latest, apply it
+                        self.pending_master_volume = None;
+                        let muted = self.muted;
+                        Task::perform(
+                            pulseaudio::set_volume(vol),
+                            move |_| Message::VolumeUpdate(vol, muted),
+                        )
+                    } else {
+                        // A newer update came in, ignore this one
+                        Task::none()
+                    }
+                } else {
+                    // Already processed or cancelled
+                    Task::none()
+                }
             }
             Message::ToggleMute => {
                 self.muted = !self.muted;
@@ -195,12 +333,41 @@ impl AudioApp {
                 )
             }
             Message::MicVolumeChanged(vol) => {
+                // Update UI immediately for smooth slider movement
                 self.mic_volume = vol;
-                let mic_muted = self.mic_muted;
+                
+                // Store pending update for debouncing
+                self.pending_mic_volume = Some(vol);
+                
+                // Schedule debounced update after 50ms
+                let vol_clone = vol;
                 Task::perform(
-                    pulseaudio::set_mic_volume(vol),
-                    move |_| Message::MicVolumeUpdate(vol, mic_muted),
+                    async move {
+                        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                        vol_clone
+                    },
+                    |v| Message::MicVolumeChangedDebounced(v),
                 )
+            }
+            Message::MicVolumeChangedDebounced(vol) => {
+                // Only apply if this is still the latest value
+                if let Some(&latest_vol) = self.pending_mic_volume.as_ref() {
+                    if (latest_vol - vol).abs() < 0.1 {
+                        // This is still the latest, apply it
+                        self.pending_mic_volume = None;
+                        let mic_muted = self.mic_muted;
+                        Task::perform(
+                            pulseaudio::set_mic_volume(vol),
+                            move |_| Message::MicVolumeUpdate(vol, mic_muted),
+                        )
+                    } else {
+                        // A newer update came in, ignore this one
+                        Task::none()
+                    }
+                } else {
+                    // Already processed or cancelled
+                    Task::none()
+                }
             }
             Message::ToggleMicMute => {
                 self.mic_muted = !self.mic_muted;
@@ -240,36 +407,126 @@ impl AudioApp {
                 )
             }
             Message::SelectOutputDevice(idx) => {
+                debug!("SelectOutputDevice called with index {}", idx);
                 if let Some(device) = self.output_devices.get(idx) {
+                    debug!("Selecting output device: index={}, name={}, description={}", device.index, device.name, device.description);
                     self.selected_output = Some(idx);
                     let device_index = device.index;
-                    let outputs = self.output_devices.clone();
-                    let inputs = self.input_devices.clone();
-                    Task::perform(
-                        pulseaudio::set_default_output(device_index),
-                        move |_| Message::DevicesUpdate(outputs, inputs),
-                    )
+                    Task::batch(vec![
+                        Task::perform(
+                            async move {
+                                pulseaudio::set_default_output(device_index).await.ok();
+                                pulseaudio::get_devices().await.unwrap_or((Vec::new(), Vec::new()))
+                            },
+                            |(outputs, inputs)| Message::DevicesUpdate(outputs, inputs),
+                        ),
+                        Task::perform(
+                            pulseaudio::get_output_device_details(device_index),
+                            |details| {
+                                debug!("Output device details task completed: success={}", details.is_ok());
+                                Message::OutputDeviceDetailsUpdate(details.ok())
+                            },
+                        ),
+                    ])
                 } else {
+                    warn!("SelectOutputDevice: device at index {} not found (total devices: {})", idx, self.output_devices.len());
                     Task::none()
                 }
             }
             Message::SelectInputDevice(idx) => {
+                debug!("SelectInputDevice called with index {}", idx);
                 if let Some(device) = self.input_devices.get(idx) {
+                    debug!("Selecting input device: index={}, name={}, description={}", device.index, device.name, device.description);
                     self.selected_input = Some(idx);
                     let device_index = device.index;
-                    let outputs = self.output_devices.clone();
-                    let inputs = self.input_devices.clone();
+                    Task::batch(vec![
+                        Task::perform(
+                            async move {
+                                pulseaudio::set_default_input(device_index).await.ok();
+                                pulseaudio::get_devices().await.unwrap_or((Vec::new(), Vec::new()))
+                            },
+                            |(outputs, inputs)| Message::DevicesUpdate(outputs, inputs),
+                        ),
+                        Task::perform(
+                            pulseaudio::get_input_device_details(device_index),
+                            |details| {
+                                debug!("Input device details task completed: success={}", details.is_ok());
+                                Message::InputDeviceDetailsUpdate(details.ok())
+                            },
+                        ),
+                    ])
+                } else {
+                    warn!("SelectInputDevice: device at index {} not found (total devices: {})", idx, self.input_devices.len());
+                    Task::none()
+                }
+            }
+            Message::OutputDeviceDetailsUpdate(details) => {
+                match &details {
+                    Some(d) => debug!("Output device details updated: index={}, {} ports, state={}, driver={:?}", d.index, d.ports.len(), d.state, d.driver),
+                    None => warn!("Output device details fetch returned None"),
+                }
+                self.selected_output_details = details;
+                Task::none()
+            }
+            Message::InputDeviceDetailsUpdate(details) => {
+                match &details {
+                    Some(d) => debug!("Input device details updated: index={}, {} ports, state={}, driver={:?}", d.index, d.ports.len(), d.state, d.driver),
+                    None => warn!("Input device details fetch returned None"),
+                }
+                self.selected_input_details = details;
+                Task::none()
+            }
+            Message::SetOutputPort(device_index, port_name) => {
+                let port_name_clone = port_name.clone();
+                Task::batch(vec![
                     Task::perform(
-                        pulseaudio::set_default_input(device_index),
-                        move |_| Message::DevicesUpdate(outputs, inputs),
+                        pulseaudio::set_output_device_port(device_index, port_name_clone),
+                        |_| Message::ClearNotification,
+                    ),
+                        Task::perform(
+                            pulseaudio::get_output_device_details(device_index),
+                            |details| {
+                                debug!("Output device details task completed after port change: success={}", details.is_ok());
+                                Message::OutputDeviceDetailsUpdate(details.ok())
+                            },
+                        ),
+                ])
+            }
+            Message::SetInputPort(device_index, port_name) => {
+                let port_name_clone = port_name.clone();
+                Task::batch(vec![
+                    Task::perform(
+                        pulseaudio::set_input_device_port(device_index, port_name_clone),
+                        |_| Message::ClearNotification,
+                    ),
+                        Task::perform(
+                            pulseaudio::get_input_device_details(device_index),
+                            |details| {
+                                debug!("Input device details task completed after port change: success={}", details.is_ok());
+                                Message::InputDeviceDetailsUpdate(details.ok())
+                            },
+                        ),
+                ])
+            }
+            Message::ToggleDevices => {
+                self.show_devices = !self.show_devices;
+                debug!("ToggleDevices: show_devices={}, current output devices={}, input devices={}, selected_output={:?}, selected_input={:?}", 
+                    self.show_devices, self.output_devices.len(), self.input_devices.len(), self.selected_output, self.selected_input);
+                
+                if self.show_devices {
+                    // Always refresh devices first to ensure we have latest data
+                    debug!("Refreshing devices list before showing device panel");
+                    Task::perform(
+                        pulseaudio::get_devices(),
+                        |result| {
+                            let (outputs, inputs) = result.unwrap_or((Vec::new(), Vec::new()));
+                            debug!("Device refresh completed: {} outputs, {} inputs", outputs.len(), inputs.len());
+                            Message::DevicesUpdate(outputs, inputs)
+                        }
                     )
                 } else {
                     Task::none()
                 }
-            }
-            Message::ToggleDevices => {
-                self.show_devices = !self.show_devices;
-                Task::none()
             }
                 Message::ToggleAppVolumes => {
                     self.show_app_volumes = !self.show_app_volumes;
@@ -328,11 +585,51 @@ impl AudioApp {
                 )
             }
             Message::SinkInputsUpdate(inputs) => {
-                self.sink_inputs = inputs;
+                self.sink_inputs = inputs.clone();
+                
+                // Match sink inputs to MPRIS players
+                // Get current now_playing to match against
+                let now_playing = self.now_playing.clone();
+                
+                // Update MPRIS metadata map
+                if let Some(np) = now_playing {
+                    // Try to match by player name to application name
+                    for input in &self.sink_inputs {
+                        let app_name_lower = input.application_name.to_lowercase();
+                        let player_name_lower = np.player_name.to_lowercase();
+                        
+                        // Match if application name contains player name or vice versa
+                        if app_name_lower.contains(&player_name_lower) || 
+                           player_name_lower.contains(&app_name_lower) ||
+                           app_name_lower == player_name_lower {
+                            self.sink_input_mpris_metadata.insert(input.application_name.clone(), np.clone());
+                            debug!("Matched MPRIS metadata for sink input: {} -> {}", input.application_name, np.title);
+                            break; // Only match one player for now
+                        }
+                    }
+                }
+                
                 Task::none()
             }
             Message::NowPlayingUpdate(np) => {
-                self.now_playing = np;
+                self.now_playing = np.clone();
+                
+                // Update MPRIS metadata for matching sink inputs
+                if let Some(ref np_meta) = np {
+                    for input in &self.sink_inputs {
+                        let app_name_lower = input.application_name.to_lowercase();
+                        let player_name_lower = np_meta.player_name.to_lowercase();
+                        
+                        // Match if application name contains player name or vice versa
+                        if app_name_lower.contains(&player_name_lower) || 
+                           player_name_lower.contains(&app_name_lower) ||
+                           app_name_lower == player_name_lower {
+                            self.sink_input_mpris_metadata.insert(input.application_name.clone(), np_meta.clone());
+                            debug!("Updated MPRIS metadata for sink input: {} -> {}", input.application_name, np_meta.title);
+                        }
+                    }
+                }
+                
                 Task::none()
             }
             Message::VolumeUpdate(vol, muted) => {
@@ -346,6 +643,7 @@ impl AudioApp {
                 Task::none()
             }
             Message::DevicesUpdate(outputs, inputs) => {
+                debug!("DevicesUpdate received: {} outputs, {} inputs", outputs.len(), inputs.len());
                 // Filter and sort devices
                 let (filtered_outputs, filtered_inputs) = devices::DeviceManager::filter_devices(
                     outputs,
@@ -354,6 +652,64 @@ impl AudioApp {
                 );
                 self.output_devices = devices::DeviceManager::sort_devices(filtered_outputs);
                 self.input_devices = devices::DeviceManager::sort_devices(filtered_inputs);
+                debug!("After filtering/sorting: {} output devices, {} input devices", self.output_devices.len(), self.input_devices.len());
+                
+                // If show_devices is true and no device selected, auto-select defaults
+                if self.show_devices {
+                    let mut tasks = Vec::new();
+                    
+                    if self.selected_output.is_none() {
+                        if let Some((idx, device)) = self.output_devices.iter().enumerate().find(|(_, d)| d.is_default) {
+                            debug!("Auto-selecting default output device: index={}, name={}", device.index, device.name);
+                            self.selected_output = Some(idx);
+                            let device_index = device.index;
+                            tasks.push(Task::perform(
+                                pulseaudio::get_output_device_details(device_index),
+                                |details| {
+                                    debug!("Auto-selected output device details task completed: success={}", details.is_ok());
+                                    Message::OutputDeviceDetailsUpdate(details.ok())
+                                },
+                            ));
+                        } else {
+                            debug!("No default output device found to auto-select");
+                        }
+                    }
+                    
+                    if self.selected_input.is_none() {
+                        // First try to find default device
+                        if let Some((idx, device)) = self.input_devices.iter().enumerate().find(|(_, d)| d.is_default) {
+                            debug!("Auto-selecting default input device: index={}, name={}", device.index, device.name);
+                            self.selected_input = Some(idx);
+                            let device_index = device.index;
+                            tasks.push(Task::perform(
+                                pulseaudio::get_input_device_details(device_index),
+                                |details| {
+                                    debug!("Auto-selected input device details task completed: success={}", details.is_ok());
+                                    Message::InputDeviceDetailsUpdate(details.ok())
+                                },
+                            ));
+                        } else if let Some((idx, device)) = self.input_devices.first().map(|d| (0, d)) {
+                            // If no default, select first available input device
+                            debug!("No default input device found, selecting first available: index={}, name={}", device.index, device.name);
+                            self.selected_input = Some(idx);
+                            let device_index = device.index;
+                            tasks.push(Task::perform(
+                                pulseaudio::get_input_device_details(device_index),
+                                |details| {
+                                    debug!("Auto-selected first input device details task completed: success={}", details.is_ok());
+                                    Message::InputDeviceDetailsUpdate(details.ok())
+                                },
+                            ));
+                        } else {
+                            debug!("No input devices available to auto-select");
+                        }
+                    }
+                    
+                    if !tasks.is_empty() {
+                        return Task::batch(tasks);
+                    }
+                }
+                
                 Task::none()
             }
             Message::ClearNotification => {
@@ -452,11 +808,12 @@ impl AudioApp {
     fn view(&self) -> Element<'_, Message> {
         let header = self.view_header();
         
-        // Show Now Playing only if we have real metadata (not just "Playing from X")
+        // Show Now Playing if we have any real metadata (title is not just "Playing from X")
         let now_playing = if let Some(np) = &self.now_playing {
-            if np.title != format!("Playing from {}", np.player_name) && 
-               !np.title.contains("Unknown") &&
-               np.artist != "Unknown Artist" {
+            // Show if title is not the fallback pattern - even if artist is unknown, show the title
+            let is_real_metadata = np.title != format!("Playing from {}", np.player_name) && 
+                                   !np.title.starts_with("Playing from");
+            if is_real_metadata {
                 self.view_now_playing()
             } else {
                 Element::from(space().height(0))
@@ -583,20 +940,16 @@ impl AudioApp {
                 
                 // Track info
                 column![
-                    // Show title or fallback
-                    if np.title != format!("Playing from {}", np.player_name) && !np.title.contains("Unknown") {
-                        text(&np.title).size(24).color(colors::TEXT_PRIMARY)
-                    } else {
-                        text(format!("🎵 {}", np.player_name)).size(20).color(colors::TEXT_PRIMARY)
-                    },
+                    // Show title - always show if we have it
+                    text(&np.title).size(24).color(colors::TEXT_PRIMARY),
                     // Show artist or hide if unknown
-                    if np.artist != "Unknown Artist" {
+                    if np.artist != "Unknown Artist" && !np.artist.is_empty() {
                         text(&np.artist).size(18).color(colors::TEXT_SECONDARY)
                     } else {
                         text("").size(18)
                     },
                     // Show album or hide if unknown
-                    if np.album != "Unknown Album" {
+                    if np.album != "Unknown Album" && !np.album.is_empty() {
                         text(&np.album).size(14).color(colors::TEXT_SECONDARY)
                     } else {
                         text("").size(14)
@@ -690,6 +1043,9 @@ impl AudioApp {
     }
 
     fn view_device_controls(&self) -> Element<'_, Message> {
+        let output_details = self.view_device_details_panel(true);
+        let input_details = self.view_device_details_panel(false);
+
         column![
             text("Output Devices").size(16).color(colors::TEXT_PRIMARY),
             scrollable(
@@ -724,7 +1080,11 @@ impl AudioApp {
                 )
                 .spacing(5)
             )
-            .height(100),
+            .height(120),
+
+            space().height(10),
+            output_details,
+            space().height(10),
             
             text("Input Devices").size(16).color(colors::TEXT_PRIMARY),
             scrollable(
@@ -759,9 +1119,128 @@ impl AudioApp {
                 )
                 .spacing(5)
             )
-            .height(100),
+            .height(120),
+
+            space().height(10),
+            input_details,
         ]
         .spacing(10)
+        .into()
+    }
+
+    fn view_device_details_panel(&self, is_output: bool) -> Element<'_, Message> {
+        let details_opt = if is_output {
+            self.selected_output_details.clone()
+        } else {
+            self.selected_input_details.clone()
+        };
+
+        let title = if is_output { "🔊 Output Device Details" } else { "🎤 Input Device Details" };
+        
+        let is_device_selected = if is_output {
+            self.selected_output.is_some()
+        } else {
+            self.selected_input.is_some()
+        };
+
+        let Some(details) = details_opt else {
+            let message = if is_device_selected {
+                "⏳ Loading device details..."
+            } else {
+                "👆 Click a device above to see detailed information"
+            };
+            return container(
+                column![
+                    text(title).size(16).color(colors::TEXT_PRIMARY),
+                    text(message).size(12).color(colors::TEXT_SECONDARY),
+                ]
+                .spacing(8),
+            )
+            .padding(16)
+            .width(Length::Fill)
+            .style(|theme| styles::glass_base(theme))
+            .into();
+        };
+
+        let device_index = details.index;
+        let active_port = details.active_port.clone().unwrap_or_default();
+
+        let ports_row: Element<Message> = if details.ports.is_empty() {
+            container(text("No ports exposed by server").size(12).color(colors::TEXT_SECONDARY))
+                .width(Length::Fill)
+                .into()
+        } else {
+            let mut port_buttons: Vec<Element<Message>> = Vec::new();
+            for p in details.ports.iter() {
+                if p.name.is_empty() {
+                    continue;
+                }
+                let is_active = p.name == active_port;
+                let port_name = p.name.clone();
+                let label = if p.description.is_empty() {
+                    port_name.clone()
+                } else {
+                    format!("{} ({})", p.description, p.available)
+                };
+
+                let msg = if is_output {
+                    Message::SetOutputPort(device_index, port_name)
+                } else {
+                    Message::SetInputPort(device_index, port_name)
+                };
+
+                port_buttons.push(
+                    button(text(label).size(12))
+                        .on_press(msg)
+                        .style(move |theme, status| {
+                            if is_active {
+                                styles::app_card(theme, iced::widget::button::Status::Active)
+                            } else {
+                                styles::app_card(theme, status)
+                            }
+                        })
+                        .padding(8)
+                        .into(),
+                );
+            }
+
+            scrollable(row(port_buttons).spacing(8))
+                .height(Length::Shrink)
+                .into()
+        };
+
+        container(
+            column![
+                text(title).size(14).color(colors::TEXT_PRIMARY),
+                text(details.description.clone()).size(12).color(colors::TEXT_SECONDARY),
+                text(format!(
+                    "State: {}   Driver: {}   Card: {}",
+                    details.state,
+                    details.driver.clone().unwrap_or_else(|| "unknown".to_string()),
+                    details.card.map(|c| c.to_string()).unwrap_or_else(|| "n/a".to_string()),
+                ))
+                .size(12)
+                .color(colors::TEXT_SECONDARY),
+                text(format!(
+                    "Sample: {}   Channels: {}",
+                    details.sample_spec,
+                    details.channel_map
+                ))
+                .size(12)
+                .color(colors::TEXT_SECONDARY),
+                text(format!(
+                    "Latency: {} µs   Configured: {} µs",
+                    details.latency_usec, details.configured_latency_usec
+                ))
+                .size(12)
+                .color(colors::TEXT_SECONDARY),
+                text("Ports").size(13).color(colors::TEXT_PRIMARY),
+                ports_row,
+            ]
+            .spacing(8),
+        )
+        .padding(12)
+        .style(|theme| styles::glass_base(theme))
         .into()
     }
 
@@ -800,9 +1279,24 @@ impl AudioApp {
                                         .height(48)
                                         .center_x(Length::Fill)
                                         .center_y(Length::Fill),
-                                        // App name and volume info
+                                        // App name, MPRIS metadata, and volume info
                                         column![
                                             text(app_name.clone()).size(16).color(colors::TEXT_PRIMARY),
+                                            // Show MPRIS metadata if available
+                                            if let Some(mpris_meta) = self.sink_input_mpris_metadata.get(&app_name) {
+                                                if !mpris_meta.title.is_empty() && mpris_meta.title != format!("Playing from {}", mpris_meta.player_name) {
+                                                    column![
+                                                        text(format!("{} - {}", mpris_meta.title, mpris_meta.artist))
+                                                            .size(12)
+                                                            .color(colors::TEXT_SECONDARY),
+                                                    ]
+                                                    .spacing(2)
+                                                } else {
+                                                    column![].spacing(2)
+                                                }
+                                            } else {
+                                                column![].spacing(2)
+                                            },
                                             text(format!("{:.0}%", input_volume)).size(12).color(colors::TEXT_SECONDARY),
                                         ]
                                         .width(Length::Fill)

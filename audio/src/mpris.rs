@@ -90,13 +90,48 @@ impl MprisManager {
         let mut players = self.players.lock().await;
         players.clear();
         
-        for (dbus_name, player_name) in found_players {
-            if let Ok(player_info) = self.get_player_info(connection, &dbus_name, &player_name).await {
-                players.insert(dbus_name.clone(), player_info);
+        // Use mpris crate to get actual player identities (collect identities first, then match)
+        let player_identities: Vec<String> = tokio::task::spawn_blocking(|| {
+            use mpris::PlayerFinder;
+            let finder = PlayerFinder::new().ok()?;
+            let all_players = finder.find_all().ok()?;
+            Some(all_players.iter().map(|p| p.identity().to_string()).collect())
+        }).await.ok().flatten().unwrap_or_default();
+        
+        if !player_identities.is_empty() {
+            debug!("Found {} MPRIS players via crate: {:?}", player_identities.len(), player_identities);
+            for identity in player_identities {
+                // Find matching D-Bus name from our discovered list
+                let dbus_name_opt = found_players.iter()
+                    .find(|(_, player_name)| {
+                        identity == *player_name || 
+                        identity.contains(player_name) ||
+                        player_name.contains(&identity)
+                    })
+                    .map(|(dbus_name, _)| dbus_name.clone());
                 
-                // Set first player as active if none is set
-                if self.active_player.lock().await.is_none() {
-                    *self.active_player.lock().await = Some(dbus_name);
+                let dbus_name = dbus_name_opt.unwrap_or_else(|| format!("{}{}", MPRIS_PREFIX, identity));
+                
+                if let Ok(player_info) = self.get_player_info(connection, &dbus_name, &identity).await {
+                    players.insert(dbus_name.clone(), player_info);
+                    
+                    // Set first player as active if none is set
+                    if self.active_player.lock().await.is_none() {
+                        *self.active_player.lock().await = Some(dbus_name);
+                    }
+                }
+            }
+        } else {
+            // Fallback to old method if mpris crate fails
+            debug!("MPRIS crate failed, using D-Bus discovery fallback");
+            for (dbus_name, player_name) in found_players {
+                if let Ok(player_info) = self.get_player_info(connection, &dbus_name, &player_name).await {
+                    players.insert(dbus_name.clone(), player_info);
+                    
+                    // Set first player as active if none is set
+                    if self.active_player.lock().await.is_none() {
+                        *self.active_player.lock().await = Some(dbus_name);
+                    }
                 }
             }
         }
@@ -119,33 +154,137 @@ impl MprisManager {
                 }
             };
             
-            // List all available players and find the right one
-            let player = if let Ok(all_players) = finder.find_all() {
-                let player_names: Vec<&str> = all_players.iter().map(|p| p.identity()).collect();
-                info!("Available MPRIS2 players: {:?}", player_names);
+            // List all available players and find the right one by identity
+            let player_result = if let Ok(all_players) = finder.find_all() {
+                let player_names: Vec<String> = all_players.iter().map(|p| p.identity().to_string()).collect();
+                debug!("Available MPRIS2 players: {:?}", player_names);
                 
-                // Try to find by matching the player name or D-Bus name
-                match all_players.into_iter()
-                    .find(|p| {
-                        let identity = p.identity();
-                        identity == player_name_clone || 
-                        identity == dbus_name_clone ||
-                        identity.contains(&player_name_clone) ||
-                        dbus_name_clone.contains(&identity)
-                    }) {
-                    Some(p) => Ok(p),
-                    None => finder.find_by_name(&player_name_clone)
-                        .or_else(|_| finder.find_by_name(&dbus_name_clone))
+                // Special handling for VLC - try multiple patterns
+                let is_vlc = player_name_clone.to_lowercase().contains("vlc") || 
+                             dbus_name_clone.to_lowercase().contains("vlc");
+                
+                // Try to find by matching the identity directly (this is what mpris crate uses)
+                // player_name_clone should be the identity from discover_players
+                if is_vlc {
+                    // Special VLC discovery with multiple patterns
+                    debug!("Detected VLC player, trying multiple identity patterns");
+                    let vlc_patterns = vec![
+                        "VLC media player",
+                        "vlc",
+                        "VLC",
+                        "org.mpris.MediaPlayer2.vlc",
+                    ];
+                    
+                    // Try each pattern
+                    let mut found_player: Option<mpris::Player> = None;
+                    for pattern in &vlc_patterns {
+                        // Try to find in all_players list first
+                        if let Some(player_ref) = all_players.iter()
+                            .find(|p| {
+                                let identity = p.identity().to_lowercase();
+                                identity == pattern.to_lowercase() ||
+                                identity.contains(&pattern.to_lowercase()) ||
+                                pattern.to_lowercase().contains(&identity)
+                            }) {
+                            let identity = player_ref.identity().to_string();
+                            debug!("Found VLC player using pattern '{}': {}", pattern, identity);
+                            // Recreate player using find_by_name
+                            if let Ok(player) = finder.find_by_name(&identity) {
+                                found_player = Some(player);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // If not found in list, try find_by_name with VLC patterns
+                    if found_player.is_none() {
+                        for pattern in &vlc_patterns {
+                            if let Ok(player) = finder.find_by_name(pattern) {
+                                debug!("Found VLC player via find_by_name('{}'): {}", pattern, player.identity());
+                                found_player = Some(player);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Use found VLC player or fall back to normal matching
+                    found_player.map(Ok).unwrap_or_else(|| {
+                        // Fallback to normal matching
+                        match all_players.into_iter()
+                            .find(|p| {
+                                let identity = p.identity();
+                                identity == player_name_clone ||
+                                identity.contains(&player_name_clone) ||
+                                player_name_clone.contains(identity)
+                            }) {
+                            Some(p) => Ok(p),
+                            None => {
+                                finder.find_by_name(&player_name_clone)
+                                    .or_else(|_| {
+                                        let base_name = player_name_clone.split('.').next().unwrap_or(&player_name_clone);
+                                        finder.find_by_name(base_name)
+                                    })
+                            }
+                        }
+                    })
+                } else {
+                    // Normal matching for non-VLC players
+                    match all_players.into_iter()
+                        .find(|p| {
+                            let identity = p.identity();
+                            identity == player_name_clone ||
+                            identity.contains(&player_name_clone) ||
+                            player_name_clone.contains(identity)
+                        }) {
+                        Some(p) => Ok(p),
+                        None => {
+                            finder.find_by_name(&player_name_clone)
+                                .or_else(|_| {
+                                    let base_name = player_name_clone.split('.').next().unwrap_or(&player_name_clone);
+                                    finder.find_by_name(base_name)
+                                })
+                        }
+                    }
                 }
             } else {
                 // Fallback: try find_by_name
-                finder.find_by_name(&player_name_clone)
-                    .or_else(|_| finder.find_by_name(&dbus_name_clone))
+                // Special VLC handling even in fallback
+                let is_vlc = player_name_clone.to_lowercase().contains("vlc");
+                if is_vlc {
+                    let vlc_patterns = vec!["vlc", "VLC", "VLC media player"];
+                    let mut found = None;
+                    for pattern in &vlc_patterns {
+                        if let Ok(player) = finder.find_by_name(pattern) {
+                            debug!("Found VLC player via fallback find_by_name('{}'): {}", pattern, player.identity());
+                            found = Some(Ok(player));
+                            break;
+                        }
+                    }
+                    found.unwrap_or_else(|| {
+                        finder.find_by_name(&player_name_clone)
+                            .or_else(|_| {
+                                let base_name = player_name_clone.split('.').next().unwrap_or(&player_name_clone);
+                                finder.find_by_name(base_name)
+                            })
+                    })
+                } else {
+                    finder.find_by_name(&player_name_clone)
+                        .or_else(|_| {
+                            let base_name = player_name_clone.split('.').next().unwrap_or(&player_name_clone);
+                            finder.find_by_name(base_name)
+                        })
+                }
             };
+            
+            let player = player_result;
             
             let player = match player {
                 Ok(p) => {
-                    info!("Found player: {}", p.identity());
+                    let identity = p.identity();
+                    info!("Found player: {} (dbus: {}, search_name: {})", identity, dbus_name_clone, player_name_clone);
+                    if identity.to_lowercase().contains("vlc") {
+                        info!("VLC player found! Identity: {}", identity);
+                    }
                     p
                 }
                 Err(e) => {
@@ -168,29 +307,66 @@ impl MprisManager {
             let mut album_art: Option<String> = None;
             let mut length = 0u64;
             
+            let is_vlc_player = player.identity().to_lowercase().contains("vlc");
             match player.get_metadata() {
                 Ok(metadata) => {
+                    // Log all available metadata fields for VLC debugging
+                    if is_vlc_player {
+                        info!("VLC metadata retrieved - checking fields...");
+                        // Try to get raw metadata map for debugging
+                        debug!("Metadata fields available for VLC player");
+                    }
+                    
                     if let Some(t) = metadata.title() {
                         title = t.to_string();
+                        if is_vlc_player {
+                            info!("VLC title found: '{}'", title);
+                        }
+                    } else if is_vlc_player {
+                        warn!("VLC metadata has no title field");
                     }
+                    
                     if let Some(artists) = metadata.artists() {
                         if let Some(first) = artists.first() {
                             artist = first.to_string();
+                            if is_vlc_player {
+                                info!("VLC artist found: '{}'", artist);
+                            }
+                        } else if is_vlc_player {
+                            warn!("VLC metadata has artists() but list is empty");
                         }
+                    } else if is_vlc_player {
+                        warn!("VLC metadata has no artists() field");
                     }
+                    
                     if let Some(a) = metadata.album_name() {
                         album = a.to_string();
+                        if is_vlc_player {
+                            info!("VLC album found: '{}'", album);
+                        }
+                    } else if is_vlc_player {
+                        debug!("VLC metadata has no album_name field");
                     }
+                    
                     if let Some(url) = metadata.art_url() {
                         album_art = Some(url.to_string());
                     }
                     if let Some(len) = metadata.length() {
                         length = len.as_secs();
                     }
-                    info!("Successfully extracted metadata: title='{}', artist='{}', album='{}'", title, artist, album);
+                    
+                    if is_vlc_player {
+                        info!("VLC final metadata: title='{}', artist='{}', album='{}'", title, artist, album);
+                    } else {
+                        info!("Successfully extracted metadata: title='{}', artist='{}', album='{}'", title, artist, album);
+                    }
                 }
                 Err(e) => {
-                    debug!("Failed to get metadata from player: {}", e);
+                    if is_vlc_player {
+                        warn!("Failed to get metadata from VLC player: {}", e);
+                    } else {
+                        debug!("Failed to get metadata from player: {}", e);
+                    }
                 }
             }
             

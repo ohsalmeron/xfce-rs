@@ -27,10 +27,10 @@ linicon = { workspace = true }
 rusqlite = "0.31"
 chrono = "0.4"
 
-xfce-rs-config = { path = "../xfce-rs-config" }
-xfce-rs-utils = { path = "../xfce-rs-utils" }
-xfce-rs-ui = { path = "../xfce-rs-ui" }
-xfce-rs-menu = { path = "../xfce-rs-menu" }
+xfce-rs-config = { path = "../area/xfce-rs/crates/xfce-rs-config" }
+xfce-rs-utils = { path = "../area/xfce-rs/crates/xfce-rs-utils" }
+xfce-rs-ui = { path = "../area/xfce-rs/crates/xfce-rs-ui" }
+xfce-rs-menu = { path = "../area/xfce-rs/crates/xfce-rs-menu" }
 
 [dev-dependencies]
 tempfile = "3.8"

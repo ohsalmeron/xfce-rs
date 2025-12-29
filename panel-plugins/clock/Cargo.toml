@@ -1,0 +1,23 @@
+[package]
+name = "xfce-rs-clock"
+version = "0.1.0"
+edition = "2021"
+authors = ["XFCE.rs Contributors"]
+description = "Clock plugin for XFCE.rs panel"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/your-username/xfce-rs"
+keywords = ["xfce", "panel", "clock", "time"]
+categories = ["gui"]
+
+[[bin]]
+name = "xfce-rs-clock"
+path = "src/main.rs"
+
+[dependencies]
+iced = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+chrono = { workspace = true }
+xfce-rs-ui = { path = "../../area/xfce-rs/crates/xfce-rs-ui" }

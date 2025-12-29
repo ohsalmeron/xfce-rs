@@ -1,0 +1,22 @@
+[package]
+name = "xfce-rs-showdesktop"
+version = "0.1.0"
+edition = "2021"
+authors = ["XFCE.rs Contributors"]
+description = "Show Desktop plugin for XFCE.rs panel"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/your-username/xfce-rs"
+keywords = ["xfce", "panel", "showdesktop"]
+categories = ["gui"]
+
+[[bin]]
+name = "xfce-rs-showdesktop"
+path = "src/main.rs"
+
+[dependencies]
+iced = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+zbus = { workspace = true }
+xfce-rs-ui = { path = "../../area/xfce-rs/crates/xfce-rs-ui" }

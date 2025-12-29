@@ -1,11 +1,20 @@
 // PulseAudio integration module - Real implementation using pulsectl-rs
+//
+// Available pulsectl-rs features we can explore:
+// 1. move_app_by_index/name - Move applications between output devices (routing)
+// 2. increase/decrease_app_volume_by_percent - Better volume control with percentage deltas
+// 3. increase/decrease_device_volume_by_percent - Device volume control with percentage deltas
+// 4. SourceController::list_applications - List recording applications (source outputs)
+// 5. get_server_info - Get server information (hostname, version, default devices, etc.)
+// 6. set_default_device - Change default sink/source
+// 7. Port switching - Already implemented via set_sink_port_by_index/set_source_port_by_index
+//
 use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use tracing::{info, debug};
-use once_cell::sync::Lazy;
+use tracing::{info, debug, error};
 use pulsectl::controllers::{SinkController, SourceController, DeviceControl};
-use pulsectl::controllers::types::{DeviceInfo, ServerInfo};
+use pulsectl::controllers::types::DeviceInfo;
 
 // PulseAudio constants
 const PA_VOLUME_NORM: u32 = 0x10000; // 65536
@@ -22,7 +31,9 @@ pub struct SinkInfo {
     pub name: String,
     pub description: String,
     pub index: u32,
+    #[allow(dead_code)]
     pub volume: f32,
+    #[allow(dead_code)]
     pub muted: bool,
 }
 
@@ -31,8 +42,59 @@ pub struct SourceInfo {
     pub name: String,
     pub description: String,
     pub index: u32,
+    #[allow(dead_code)]
     pub volume: f32,
+    #[allow(dead_code)]
     pub muted: bool,
+}
+
+fn volume_percent_from_cvol(volume: &libpulse_binding::volume::ChannelVolumes) -> f32 {
+    if !volume.get().is_empty() {
+        let vol = volume.get()[0];
+        (vol.0 as f32 / PA_VOLUME_NORM as f32) * 100.0
+    } else {
+        0.0
+    }
+}
+
+fn device_details_from_device_info(device: DeviceInfo, is_default: bool) -> crate::AudioDeviceDetails {
+    let ports = device
+        .ports
+        .iter()
+        .map(|p| crate::DevicePort {
+            name: p.name.clone().unwrap_or_default(),
+            description: p.description.clone().unwrap_or_default(),
+            priority: p.priority,
+            available: format!("{:?}", p.available),
+        })
+        .collect::<Vec<_>>();
+
+    debug!(
+        "Converting device info to details: index={}, name={:?}, ports={}, state={:?}, card={:?}",
+        device.index,
+        device.name,
+        ports.len(),
+        device.state,
+        device.card
+    );
+
+    crate::AudioDeviceDetails {
+        index: device.index,
+        name: device.name.clone().unwrap_or_default(),
+        description: device.description.clone().unwrap_or_default(),
+        is_default,
+        volume_percent: volume_percent_from_cvol(&device.volume),
+        muted: device.mute,
+        state: format!("{:?}", device.state),
+        driver: device.driver.clone(),
+        card: device.card,
+        sample_spec: format!("{:?}", device.sample_spec),
+        channel_map: format!("{:?}", device.channel_map),
+        latency_usec: device.latency.0,
+        configured_latency_usec: device.configured_latency.0,
+        ports,
+        active_port: device.active_port.and_then(|p| p.name),
+    }
 }
 
 impl PulseAudioManager {
@@ -144,10 +206,6 @@ impl PulseAudioManager {
         Ok(())
     }
 
-    pub fn is_connected(&self) -> bool {
-        // Always consider connected if we can create controllers
-        true
-    }
 
     pub async fn get_volume(&self) -> Result<(f32, bool)> {
         // Get default sink volume
@@ -216,7 +274,7 @@ impl PulseAudioManager {
             
             controller.set_device_volume_by_name(&sink_name, &channel_volumes);
             
-            info!("Set sink volume to {:.1}%", volume_clone);
+            debug!("Set sink volume to {:.1}%", volume_clone);
             Ok(())
         }).await
             .map_err(|e| anyhow::anyhow!("Task error: {}", e))?
@@ -233,7 +291,7 @@ impl PulseAudioManager {
             
             controller.set_device_mute_by_name(&sink_name, muted_clone);
             
-            info!("Set sink mute to {}", muted_clone);
+            debug!("Set sink mute to {}", muted_clone);
             Ok(())
         }).await
             .map_err(|e| anyhow::anyhow!("Task error: {}", e))?
@@ -306,7 +364,7 @@ impl PulseAudioManager {
             
             controller.set_device_volume_by_name(&source_name, &channel_volumes);
             
-            info!("Set source volume to {:.1}%", volume_clone);
+            debug!("Set source volume to {:.1}%", volume_clone);
             Ok(())
         }).await
             .map_err(|e| anyhow::anyhow!("Task error: {}", e))?
@@ -323,7 +381,7 @@ impl PulseAudioManager {
             
             controller.set_device_mute_by_name(&source_name, muted_clone);
             
-            info!("Set source mute to {}", muted_clone);
+            debug!("Set source mute to {}", muted_clone);
             Ok(())
         }).await
             .map_err(|e| anyhow::anyhow!("Task error: {}", e))?
@@ -446,4 +504,144 @@ pub async fn get_volume() -> Result<(f32, bool)> {
 
 pub async fn get_mic_volume() -> Result<(f32, bool)> {
     MANAGER.get_mic_volume().await
+}
+
+pub async fn get_output_device_details(device_index: u32) -> Result<crate::AudioDeviceDetails> {
+    debug!("Fetching output device details for index {}", device_index);
+    tokio::task::spawn_blocking(move || -> Result<crate::AudioDeviceDetails, anyhow::Error> {
+        let mut controller = SinkController::create()
+            .map_err(|e| {
+                error!("Failed to create SinkController: {}", e);
+                anyhow::anyhow!("Failed to create SinkController: {}", e)
+            })?;
+
+        let server_info = controller
+            .get_server_info()
+            .map_err(|e| {
+                error!("Failed to get server info: {}", e);
+                anyhow::anyhow!("Failed to get server info: {}", e)
+            })?;
+        let default_name = server_info.default_sink_name.unwrap_or_default();
+
+        let device = controller
+            .get_device_by_index(device_index)
+            .map_err(|e| {
+                error!("Failed to get sink by index {}: {}", device_index, e);
+                anyhow::anyhow!("Failed to get sink by index {}: {}", device_index, e)
+            })?;
+
+        let is_default = device.name.clone().unwrap_or_default() == default_name;
+        debug!("Successfully fetched output device details for index {}: {} ports", device_index, device.ports.len());
+        Ok(device_details_from_device_info(device, is_default))
+    })
+    .await
+    .map_err(|e| {
+        error!("Task join error getting output device details: {}", e);
+        anyhow::anyhow!("Task error: {}", e)
+    })?
+    .map_err(|e| {
+        error!("Failed to get output device details for index {}: {}", device_index, e);
+        e
+    })
+}
+
+pub async fn get_input_device_details(device_index: u32) -> Result<crate::AudioDeviceDetails> {
+    debug!("Fetching input device details for index {}", device_index);
+    tokio::task::spawn_blocking(move || -> Result<crate::AudioDeviceDetails, anyhow::Error> {
+        let mut controller = SourceController::create()
+            .map_err(|e| {
+                error!("Failed to create SourceController: {}", e);
+                anyhow::anyhow!("Failed to create SourceController: {}", e)
+            })?;
+
+        let server_info = controller
+            .get_server_info()
+            .map_err(|e| {
+                error!("Failed to get server info: {}", e);
+                anyhow::anyhow!("Failed to get server info: {}", e)
+            })?;
+        let default_name = server_info.default_source_name.unwrap_or_default();
+
+        let device = controller
+            .get_device_by_index(device_index)
+            .map_err(|e| {
+                error!("Failed to get source by index {}: {}", device_index, e);
+                anyhow::anyhow!("Failed to get source by index {}: {}", device_index, e)
+            })?;
+
+        let is_default = device.name.clone().unwrap_or_default() == default_name;
+        debug!("Successfully fetched input device details for index {}: {} ports", device_index, device.ports.len());
+        Ok(device_details_from_device_info(device, is_default))
+    })
+    .await
+    .map_err(|e| {
+        error!("Task join error getting input device details: {}", e);
+        anyhow::anyhow!("Task error: {}", e)
+    })?
+    .map_err(|e| {
+        error!("Failed to get input device details for index {}: {}", device_index, e);
+        e
+    })
+}
+
+pub async fn set_output_device_port(device_index: u32, port_name: String) -> Result<()> {
+    debug!("Setting output device port: index={}, port={}", device_index, port_name);
+    tokio::task::spawn_blocking(move || -> Result<(), anyhow::Error> {
+        let mut controller = SinkController::create()
+            .map_err(|e| {
+                error!("Failed to create SinkController for port change: {}", e);
+                anyhow::anyhow!("Failed to create SinkController: {}", e)
+            })?;
+
+        let op = controller
+            .handler
+            .introspect
+            .set_sink_port_by_index(device_index, &port_name, None);
+        controller
+            .handler
+            .wait_for_operation(op)
+            .map_err(|e| {
+                error!("Failed to set sink port for index {} to {}: {}", device_index, port_name, e);
+                anyhow::anyhow!("Failed to set sink port: {}", e)
+            })?;
+
+        info!("Successfully set output device port: index={}, port={}", device_index, port_name);
+        Ok(())
+    })
+    .await
+    .map_err(|e| {
+        error!("Task join error setting output device port: {}", e);
+        anyhow::anyhow!("Task error: {}", e)
+    })?
+}
+
+pub async fn set_input_device_port(device_index: u32, port_name: String) -> Result<()> {
+    debug!("Setting input device port: index={}, port={}", device_index, port_name);
+    tokio::task::spawn_blocking(move || -> Result<(), anyhow::Error> {
+        let mut controller = SourceController::create()
+            .map_err(|e| {
+                error!("Failed to create SourceController for port change: {}", e);
+                anyhow::anyhow!("Failed to create SourceController: {}", e)
+            })?;
+
+        let op = controller
+            .handler
+            .introspect
+            .set_source_port_by_index(device_index, &port_name, None);
+        controller
+            .handler
+            .wait_for_operation(op)
+            .map_err(|e| {
+                error!("Failed to set source port for index {} to {}: {}", device_index, port_name, e);
+                anyhow::anyhow!("Failed to set source port: {}", e)
+            })?;
+
+        info!("Successfully set input device port: index={}, port={}", device_index, port_name);
+        Ok(())
+    })
+    .await
+    .map_err(|e| {
+        error!("Task join error setting input device port: {}", e);
+        anyhow::anyhow!("Task error: {}", e)
+    })?
 }

@@ -223,7 +223,7 @@ impl SinkInputManager {
         controller.set_app_mute(index, muted)
             .map_err(|e| anyhow::anyhow!("Failed to set mute: {}", e))?;
         
-        info!("Set sink input {} mute to {}", index, muted);
+        debug!("Set sink input {} mute to {}", index, muted);
         Ok(())
     }
 }

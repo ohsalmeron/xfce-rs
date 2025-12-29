@@ -1,0 +1,34 @@
+use x11rb::atom_manager;
+
+atom_manager! {
+    pub AtomCollection: AtomCollectionCookie {
+        _NET_SUPPORTED,
+        _NET_CLIENT_LIST,
+        _NET_NUMBER_OF_DESKTOPS,
+        _NET_DESKTOP_GEOMETRY,
+        _NET_DESKTOP_VIEWPORT,
+        _NET_CURRENT_DESKTOP,
+        _NET_DESKTOP_NAMES,
+        _NET_ACTIVE_WINDOW,
+        _NET_WORKAREA,
+        _NET_SUPPORTING_WM_CHECK,
+        _NET_WM_DESKTOP,
+        _NET_WM_NAME,
+        _NET_WM_STATE,
+        _NET_WM_STATE_FULLSCREEN,
+        _NET_WM_STATE_MAXIMIZED_VERT,
+        _NET_WM_STATE_MAXIMIZED_HORZ,
+        _NET_WM_WINDOW_TYPE,
+        _NET_WM_WINDOW_TYPE_NORMAL,
+        _NET_WM_WINDOW_TYPE_DOCK,
+        _NET_WM_WINDOW_TYPE_DIALOG,
+        _NET_WM_STRUT,
+        _NET_WM_STRUT_PARTIAL,
+        WM_PROTOCOLS,
+        WM_DELETE_WINDOW,
+        WM_TAKE_FOCUS,
+        WM_TRANSIENT_FOR,
+        _MOTIF_WM_HINTS,
+        UTF8_STRING,
+    }
+}

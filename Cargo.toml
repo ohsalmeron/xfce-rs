@@ -2,22 +2,18 @@
 resolver = "2"
 
 members = [
-    # Commented out - these crates don't exist in crates/ directory
-    # "crates/xfce-rs-config",
-    # "crates/xfce-rs-ipc",
-    # "crates/xfce-rs-utils",
-    # "crates/xfce-rs-ui",
-    # "crates/xfce-rs-menu",
-    # "crates/xfce-rs-wm",
-    # "crates/xfce-rs-desktop",
-    # "crates/xfce-rs-panel",
-    # "crates/xfce-rs-thunar",
-    # "crates/navigator",
     "audio",
+    "navigator",
+    "xfwm4-rs",
+    "panel",
+    "panel-plugins/clock",
+    "panel-plugins/separator",
+    "panel-plugins/showdesktop",
 ]
 
 [workspace.dependencies]
 tokio = { version = "1.0", features = ["full"] }
+futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 log = "0.4"
@@ -48,3 +44,6 @@ xdg = "2.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 linicon = "2.3"
+x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
+rusqlite = "0.31"
+chrono = "0.4"
