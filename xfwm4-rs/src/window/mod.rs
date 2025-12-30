@@ -7,7 +7,9 @@ pub mod cursors;
 pub mod compositor;
 pub mod settings;
 pub mod session;
+pub mod error;
 
-pub const LAYER_DOCK: u16 = 8;
 pub const LAYER_NORMAL: u16 = 4;
+pub const LAYER_DOCK: u16 = 8;
 pub const LAYER_FULLSCREEN: u16 = 10;
+pub const LAYER_DESKTOP: u16 = 2;

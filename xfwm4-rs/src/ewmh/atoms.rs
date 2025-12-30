@@ -22,6 +22,7 @@ atom_manager! {
         _NET_WM_WINDOW_TYPE_NORMAL,
         _NET_WM_WINDOW_TYPE_DOCK,
         _NET_WM_WINDOW_TYPE_DIALOG,
+        _NET_WM_WINDOW_TYPE_DESKTOP,
         _NET_WM_STRUT,
         _NET_WM_STRUT_PARTIAL,
         WM_PROTOCOLS,

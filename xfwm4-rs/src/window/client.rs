@@ -7,8 +7,10 @@ pub struct Client {
     pub window: Window,
     /// The window ID of the frame decorations (if any)
     pub frame: Option<Window>,
-    /// The Render Picture for composition
+    /// The Render Picture for the frame decorations
     pub picture: Option<Picture>,
+    /// The Render Picture for the client content
+    pub content_picture: Option<Picture>,
     // Fields tracking window geometry/state, used for layout and rendering logic (Phase 2)
     // Detailed usage planned for decoration rendering implementation.
     #[allow(dead_code)]
@@ -34,6 +36,8 @@ pub struct Client {
     pub strut: Option<Vec<u32>>,
     pub transient_for: Option<Window>,
     pub layer: u16,
+    pub is_desktop: bool,
+    pub is_dock: bool,
 }
 
 impl Client {
@@ -42,6 +46,7 @@ impl Client {
             window,
             frame: None,
             picture: None,
+            content_picture: None,
             x,
             y,
             width,
@@ -57,6 +62,8 @@ impl Client {
             strut: None,
             transient_for: None,
             layer: 4, // Normal layer
+            is_desktop: false,
+            is_dock: false,
         }
     }
 }

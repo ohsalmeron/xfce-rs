@@ -1,0 +1,1 @@
+./test-interaction-fix.sh: line 26: ./target/release/xfwm4-rs: No such file or directory

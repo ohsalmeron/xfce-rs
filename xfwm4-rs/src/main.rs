@@ -106,7 +106,27 @@ async fn main() -> anyhow::Result<()> {
             
             let mut wm = WindowManager::new(ctx, settings_manager)?;
             wm.scan_windows()?;
-            wm.run()?;
+            
+            // Run with error handling - don't let X11 errors crash us
+            loop {
+                match wm.run() {
+                    Ok(_) => break, // Normal exit
+                    Err(e) => {
+                        // Check if it's a fatal error or recoverable
+                        let error_msg = format!("{}", e);
+                        if error_msg.contains("closed the connection") || 
+                           error_msg.contains("broken pipe") ||
+                           error_msg.contains("I/O error") {
+                            error!("Fatal X11 error - server disconnected: {}", e);
+                            break;
+                        } else {
+                            // Log but try to continue for other errors
+                            error!("X11 error (continuing): {}", e);
+                            std::thread::sleep(std::time::Duration::from_millis(100));
+                        }
+                    }
+                }
+            }
         }
         Err(e) => {
             error!("Failed to connect to X11 server: {}", e);

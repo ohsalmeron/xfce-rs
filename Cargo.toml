@@ -9,6 +9,7 @@ members = [
     "panel-plugins/clock",
     "panel-plugins/separator",
     "panel-plugins/showdesktop",
+    "xfce4-settings",
 ]
 
 [workspace.dependencies]

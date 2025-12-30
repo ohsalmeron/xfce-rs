@@ -2,11 +2,14 @@ use std::collections::HashMap;
 use anyhow::Result;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{Window, ConnectionExt, CreateWindowAux, WindowClass, EventMask, AtomEnum, PropMode};
-use x11rb::protocol::render::{CreatePictureAux, ConnectionExt as RenderExt};
+use x11rb::protocol::composite::ConnectionExt as CompositeExt;
 use x11rb::protocol::damage::{ConnectionExt as DamageExt, ReportLevel};
+use x11rb::protocol::render::{ConnectionExt as RenderExt, CreatePictureAux};
+use x11rb::protocol::xfixes::ConnectionExt as XFixesExt;
+use x11rb::protocol::shape::ConnectionExt as ShapeExt;
 use x11rb::wrapper::ConnectionExt as _;
 use x11rb::protocol::Event;
-use tracing::{info, debug, warn};
+use tracing::{info, debug, warn, error};
 
 use crate::core::context::Context;
 use crate::window::client::Client;
@@ -16,6 +19,7 @@ use crate::window::placement::{center_window, cascade_placement};
 use crate::window::cursors::Cursors;
 use crate::window::compositor::Compositor;
 use crate::window::settings::SettingsManager;
+use crate::window::error::{ErrorTracker, log_warn};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SnapZone {
@@ -56,19 +60,59 @@ pub struct WindowManager {
     pub last_click_window: Window,
     pub mru_stack: Vec<Window>,
     pub settings_manager: SettingsManager,
+    pub error_tracker: ErrorTracker,
 }
 
 impl WindowManager {
     pub fn new(ctx: Context, settings_manager: SettingsManager) -> Result<Self> {
+        // Initialize extensions with error checking
+        match ctx.conn.composite_query_version(0, 4)?.reply() {
+            Ok(ver) => info!("Composite extension v{}.{}", ver.major_version, ver.minor_version),
+            Err(e) => error!("Failed to query composite version: {}", e),
+        }
+        match ctx.conn.damage_query_version(1, 1)?.reply() {
+            Ok(ver) => info!("Damage extension v{}.{}", ver.major_version, ver.minor_version),
+            Err(e) => error!("Failed to query damage version: {}", e),
+        }
+        match XFixesExt::xfixes_query_version(&ctx.conn, 5, 0)?.reply() {
+            Ok(ver) => info!("XFixes extension v{}.{}", ver.major_version, ver.minor_version),
+            Err(e) => error!("Failed to query xfixes version: {}", e),
+        }
+        match ShapeExt::shape_query_version(&ctx.conn)?.reply() {
+            Ok(ver) => info!("Shape extension v{}.{}", ver.major_version, ver.minor_version),
+            Err(e) => error!("Failed to query shape version: {}", e),
+        }
+
         let cursors = Cursors::new(&ctx.conn, ctx.screen_num)?;
-        let mut compositor = Compositor::new(&ctx.conn, ctx.root_window)?;
-        
+        let mut compositor = Compositor::new(&ctx.conn, ctx.root_window, ctx.screen_num)?;
+
         // Enable compositor immediately
         if let Err(e) = compositor.enable(&ctx.conn) {
-             warn!("Failed to enable compositor: {}", e);
+             error!("Failed to enable compositor: {}", e);
         } else {
              info!("Compositor enabled.");
+             log_warn(compositor.set_cursor(&ctx.conn, cursors.normal), "set compositor cursor");
         }
+        
+        // Set root cursor
+        use x11rb::protocol::xproto::ChangeWindowAttributesAux;
+        log_warn(ctx.conn.change_window_attributes(ctx.root_window, &ChangeWindowAttributesAux::new().cursor(cursors.normal)), "set root cursor");
+        // Select input events for the root window to receive necessary events
+        let event_mask = EventMask::SUBSTRUCTURE_REDIRECT
+            | EventMask::SUBSTRUCTURE_NOTIFY
+            | EventMask::PROPERTY_CHANGE
+            | EventMask::BUTTON_PRESS
+            | EventMask::BUTTON_RELEASE
+            | EventMask::POINTER_MOTION
+            | EventMask::KEY_PRESS
+            | EventMask::KEY_RELEASE;
+        log_warn(
+            ctx.conn.change_window_attributes(
+                ctx.root_window,
+                &ChangeWindowAttributesAux::new().event_mask(event_mask),
+            ),
+            "set root window event mask",
+        );
         
         // Grab Alt+Tab (Mod1 + 23)
         let modifiers = [
@@ -79,14 +123,16 @@ impl WindowManager {
         ];
         
         for mods in modifiers {
-             let _ = ctx.conn.grab_key(
+             if let Err(e) = ctx.conn.grab_key(
                  false,
                  ctx.root_window,
                  mods,
                  23, // Tab
                  x11rb::protocol::xproto::GrabMode::ASYNC,
                  x11rb::protocol::xproto::GrabMode::ASYNC
-             );
+             ) {
+                 warn!("Failed to grab Alt+Tab with modifiers {:?}: {}", mods, e);
+             }
         }
 
         Ok(Self {
@@ -100,6 +146,7 @@ impl WindowManager {
             last_click_window: x11rb::NONE,
             mru_stack: Vec::new(),
             settings_manager,
+            error_tracker: ErrorTracker::new(),
         })
     }
 
@@ -124,7 +171,19 @@ impl WindowManager {
     }
 
     pub fn manage_window(&mut self, win: Window) -> Result<()> {
-        debug!("Managing window {}", win);
+        // 1. Get Window Name (with fallbacks)
+        let mut name = "Unnamed".to_string();
+        for &atom in &[self.ctx.atoms._NET_WM_NAME, self.ctx.atoms.UTF8_STRING, AtomEnum::WM_NAME.into()] {
+            if let Ok(reply) = self.ctx.conn.get_property(false, win, atom, AtomEnum::ANY, 0, 1024)?.reply() {
+                if !reply.value.is_empty() {
+                    if let Ok(s) = String::from_utf8(reply.value) {
+                        name = s;
+                        break;
+                    }
+                }
+            }
+        }
+        debug!("Managing window {} ({})", win, name);
         
         // Check for _NET_WM_DESKTOP
         let mut workspace = self.current_workspace;
@@ -179,11 +238,14 @@ impl WindowManager {
         }
         
         let is_dock = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_DOCK);
+        let is_desktop = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_DESKTOP);
         let is_fullscreen = window_types.contains(&self.ctx.atoms._NET_WM_STATE_FULLSCREEN);
         
+
+
         let (motif_decor, motif_title) = self.read_motif_hints(win);
         
-        let (border_width, title_height) = if is_dock || is_fullscreen || !motif_decor {
+        let (border_width, title_height) = if is_dock || is_fullscreen || is_desktop || !motif_decor {
             (0, 0)
         } else if !motif_title {
             (BORDER_WIDTH, 0)
@@ -191,8 +253,10 @@ impl WindowManager {
             (BORDER_WIDTH, TITLE_HEIGHT)
         };
         
-        use crate::window::{LAYER_DOCK, LAYER_NORMAL, LAYER_FULLSCREEN};
-        let layer = if is_dock {
+        use crate::window::{LAYER_DOCK, LAYER_NORMAL, LAYER_FULLSCREEN, LAYER_DESKTOP};
+        let layer = if is_desktop {
+            LAYER_DESKTOP
+        } else if is_dock {
             LAYER_DOCK
         } else if is_fullscreen {
             LAYER_FULLSCREEN
@@ -200,7 +264,7 @@ impl WindowManager {
             LAYER_NORMAL
         };
 
-        if x == 0 && y == 0 && !is_dock {
+        if (x <= 1 || y <= 1) && !is_dock && !is_desktop {
             let screen = &self.ctx.conn.setup().roots[self.ctx.screen_num];
             
             if is_dialog {
@@ -214,10 +278,19 @@ impl WindowManager {
                  y = ny;
             }
         }
+        
+        // Force Desktops to 0,0 and screen size if they are intended to be background
+        let (fix_x, fix_y, fix_w, fix_h) = if is_desktop {
+            (0, 0, self.ctx.screen_width, self.ctx.screen_height)
+        } else {
+            (x, y, geom.width, geom.height)
+        };
 
-        let frame_geom = FrameGeometry::from_client(x, y, geom.width, geom.height, border_width, title_height);
+        let frame_geom = FrameGeometry::from_client(fix_x, fix_y, fix_w, fix_h, border_width, title_height);
+        debug!("Frame geometry for window {}: {:?}", win, frame_geom);
         let frame_win = self.ctx.conn.generate_id()?;
         
+        // Listen for frame events (decorations) and motion
         let values = CreateWindowAux::new()
             .event_mask(EventMask::SUBSTRUCTURE_NOTIFY | EventMask::SUBSTRUCTURE_REDIRECT | EventMask::EXPOSURE | EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE | EventMask::POINTER_MOTION)
             .background_pixel(0x333333)
@@ -236,8 +309,33 @@ impl WindowManager {
             0,
             &values,
         )?;
+
+        // Passive grab for click-to-focus on the client window
+        // SYNC mode is crucial: it let's us "AllowEvents(REPLAY_POINTER)" so the app gets the click
+        use x11rb::protocol::xproto::{ButtonIndex, ModMask, GrabMode};
+        self.ctx.conn.grab_button(
+            true,
+            win,
+            EventMask::BUTTON_PRESS,
+            GrabMode::SYNC, 
+            GrabMode::ASYNC,
+            x11rb::NONE,
+            x11rb::NONE,
+            ButtonIndex::M1,
+            ModMask::ANY,
+        )?;
         
         self.ctx.conn.reparent_window(win, frame_win, frame_geom.client_x, frame_geom.client_y)?;
+        
+        // Initial stacking order: Desktops stay at the bottom, others go to top
+        let mut aux = x11rb::protocol::xproto::ConfigureWindowAux::new();
+        if is_desktop {
+            aux = aux.stack_mode(x11rb::protocol::xproto::StackMode::BELOW);
+        } else {
+            aux = aux.stack_mode(x11rb::protocol::xproto::StackMode::ABOVE);
+        }
+        let _ = self.ctx.conn.configure_window(frame_win, &aux);
+        debug!("Created frame window {} for client {} (stacking: {:?})", frame_win, win, if is_desktop { "BELOW" } else { "ABOVE" });
         
         if workspace == self.current_workspace || workspace == 0xFFFFFFFF {
              self.ctx.conn.map_window(frame_win)?;
@@ -248,37 +346,78 @@ impl WindowManager {
             win,
             frame_geom.x,
             frame_geom.y,
-            geom.width,
-            geom.height
+            fix_w,
+            fix_h
         );
         client.frame = Some(frame_win);
+        client.name = name;
         client.workspace = workspace;
         client.window_type = window_types;
         client.transient_for = transient_for;
         client.layer = layer;
+        client.is_desktop = is_desktop;
+        client.is_dock = is_dock;
+        client.is_fullscreen = is_fullscreen;
         
         if self.compositor.active {
-             if let Ok(format) = Compositor::find_format(&self.ctx.conn, self.ctx.root_depth) {
-                 if let Ok(pict) = self.ctx.conn.generate_id() {
-                     if let Ok(_) = self.ctx.conn.render_create_picture(pict, frame_win, format, &CreatePictureAux::new()) {
-                         client.picture = Some(pict);
-                     }
-                 }
-                 
-                 if let Ok(dmg) = self.ctx.conn.generate_id() {
-                     if let Ok(_) = self.ctx.conn.damage_create(dmg, win, ReportLevel::NON_EMPTY) {
-                         client.damage = Some(dmg);
-                     }
-                 }
+             let frame_geom = self.ctx.conn.get_geometry(frame_win)?.reply()?;
+             debug!("Frame {} depth: {}", frame_win, frame_geom.depth);
+             
+             if let Ok(format) = Compositor::find_format(&self.ctx.conn, frame_geom.depth) {
+                  // 1. Picture for the frame (decorations)
+                  if let Ok(pict) = self.ctx.conn.generate_id() {
+                      match self.ctx.conn.render_create_picture(
+                          pict, 
+                          frame_win, 
+                          format, 
+                          &CreatePictureAux::new()
+                      ) {
+                          Ok(_) => { 
+                              debug!("Created Picture {} (depth {}) for frame {}", pict, frame_geom.depth, frame_win);
+                              client.picture = Some(pict); 
+                          },
+                          Err(e) => error!("Failed to create frame picture: {}", e),
+                      }
+                  }
+
+                  // 2. Picture for the client (content)
+                  if let Ok(pict) = self.ctx.conn.generate_id() {
+                      let win_geom = self.ctx.conn.get_geometry(win)?.reply()?;
+                      debug!("Client {} depth: {}", win, win_geom.depth);
+                      if let Ok(win_format) = Compositor::find_format(&self.ctx.conn, win_geom.depth) {
+                          match self.ctx.conn.render_create_picture(
+                              pict,
+                              win,
+                              win_format,
+                              &CreatePictureAux::new()
+                          ) {
+                              Ok(_) => {
+                                  debug!("Created Picture {} (depth {}) for client window {}", pict, win_geom.depth, win);
+                                  client.content_picture = Some(pict);
+                              },
+                              Err(e) => error!("Failed to create client picture: {}", e),
+                          }
+                      }
+                  }
              }
 
-             if let Ok(strut) = self.read_strut_property(win) {
-                  client.strut = strut;
+             if let Ok(dmg) = self.ctx.conn.generate_id() {
+                 debug!("Creating damage {} for window {}", dmg, win);
+                 match self.ctx.conn.damage_create(dmg, win, ReportLevel::NON_EMPTY) {
+                     Ok(_) => client.damage = Some(dmg),
+                     Err(e) => error!("Failed to create damage resource {}: {}", dmg, e),
+                 }
              }
         }
+        
+        if let Ok(strut) = self.read_strut_property(win) {
+             client.strut = strut;
+        }
+
 
         let width = geom.width + (2 * border_width);
         let height = geom.height + title_height + (2 * border_width);
+        debug!("Drawing decoration for frame {} (title: {})", frame_win, client.name);
         if let Err(e) = draw_decoration(&self.ctx, frame_win, &client.name, width, height, title_height) {
              warn!("Failed to draw initial decoration: {}", e);
         }
@@ -301,7 +440,10 @@ impl WindowManager {
                      let _ = self.ctx.conn.damage_destroy(dmg);
                 }
                 
-                let _ = self.ctx.conn.reparent_window(win, self.ctx.root_window, client.x, client.y);
+                let (b, t) = if client.is_desktop || client.is_dock || client.is_fullscreen { (0, 0) } else { (crate::window::frame::BORDER_WIDTH, crate::window::frame::TITLE_HEIGHT) };
+                let client_x = client.x + b as i16;
+                let client_y = client.y + (t + b) as i16;
+                let _ = self.ctx.conn.reparent_window(win, self.ctx.root_window, client_x, client_y);
             }
             self.mru_stack.retain(|&w| w != win);
         }
@@ -395,37 +537,40 @@ impl WindowManager {
 
     pub fn paint(&self) -> Result<()> {
         if !self.compositor.active { return Ok(()); }
+        debug!("Compositor painting...");
 
-        let tree = self.ctx.conn.query_tree(self.ctx.root_window)?.reply()?;
-        
-        let client_map: HashMap<Window, &Client> = self.clients.values().filter_map(|c| c.frame.map(|f| (f, c))).collect();
-        
-        let mut layered_clients: Vec<(u16, usize, &Client)> = tree.children.iter().enumerate().filter_map(|(idx, win)| {
-             client_map.get(win).map(|&c| (layer_from_client(c, &self.ctx), idx, c))
+        let mut layered_clients: Vec<(u16, usize, &Client)> = self.mru_stack.iter().enumerate().filter_map(|(idx, &win_id)| {
+            self.clients.get(&win_id).map(|c| (c.layer, idx, c))
         }).collect();
         
-        layered_clients.sort_by_key(|&(layer, idx, _)| (layer, idx));
+        // Sort by layer (ascending), then by mru index (descending - Painter's Algorithm)
+        layered_clients.sort_by(|a, b| {
+            if a.0 != b.0 {
+                a.0.cmp(&b.0)
+            } else {
+                b.1.cmp(&a.1)
+            }
+        });
 
         let sorted_clients = layered_clients.into_iter().filter_map(|(_, _, client)| {
-             if let Some(pic) = client.picture {
-                 if client.workspace == self.current_workspace || client.workspace == 0xFFFFFFFF {
-                      use crate::window::frame::{BORDER_WIDTH, TITLE_HEIGHT};
-                      let is_dock = client.window_type.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_DOCK);
-                      let is_fullscreen = client.is_fullscreen;
-                      
-                      let has_decor = !is_dock && !is_fullscreen;
-                      let border = if has_decor { BORDER_WIDTH } else { 0 };
-                      let title = if has_decor { TITLE_HEIGHT } else { 0 };
-
-                      let w = client.width + (2 * border);
-                      let h = client.height + title + (2 * border);
-                      return Some((pic, client.x, client.y, w, h));
-                 }
-             }
-             None
+            if client.workspace == self.current_workspace || client.workspace == 4294967295 {
+                if let Some(content_pic) = client.content_picture {
+                   // Docks and Desktops have no borders
+                   let (b, t) = if client.is_desktop || client.is_dock || client.is_fullscreen { 
+                       (0, 0) 
+                   } else { 
+                       (crate::window::frame::BORDER_WIDTH, crate::window::frame::TITLE_HEIGHT) 
+                   };
+                   
+                   let w = client.width + (2 * b);
+                   let h = client.height + t + (2 * b);
+                   return Some((client.picture, content_pic, client.x, client.y, w, h, b, t, client.width, client.height));
+                }
+            }
+            None
         });
-        
-        self.compositor.paint(&self.ctx.conn, sorted_clients)?;
+
+        self.compositor.paint(&self.ctx.conn, self.ctx.screen_width, self.ctx.screen_height, sorted_clients)?;
         Ok(())
     }
 
@@ -671,19 +816,49 @@ impl WindowManager {
 
     pub fn focus_window(&mut self, window: Window) -> Result<()> {
         use x11rb::protocol::xproto::{InputFocus, ClientMessageEvent, ClientMessageData, EventMask};
-        if self.is_protocol_supported(window, self.ctx.atoms.WM_TAKE_FOCUS) {
-             let event = ClientMessageEvent {
-                response_type: x11rb::protocol::xproto::CLIENT_MESSAGE_EVENT,
-                format: 32,
-                window,
-                type_: self.ctx.atoms.WM_PROTOCOLS,
-                data: ClientMessageData::from([self.ctx.atoms.WM_TAKE_FOCUS, x11rb::CURRENT_TIME, 0, 0, 0]),
-                sequence: 0,
-            };
-            self.ctx.conn.send_event(false, window, EventMask::NO_EVENT, event)?;
+        
+        info!("🎯 FOCUS: Attempting to focus window {}", window);
+        
+        if let Some(client) = self.clients.get(&window) {
+            info!("🎯 FOCUS: Window {} exists, name='{}', frame={:?}", 
+                  window, client.name, client.frame);
+                  
+            if self.is_protocol_supported(window, self.ctx.atoms.WM_TAKE_FOCUS) {
+                 let event = ClientMessageEvent {
+                    response_type: x11rb::protocol::xproto::CLIENT_MESSAGE_EVENT,
+                    format: 32,
+                    window,
+                    type_: self.ctx.atoms.WM_PROTOCOLS,
+                    data: ClientMessageData::from([self.ctx.atoms.WM_TAKE_FOCUS, x11rb::CURRENT_TIME, 0, 0, 0]),
+                    sequence: 0,
+                };
+                match self.ctx.conn.send_event(false, window, EventMask::NO_EVENT, event) {
+                    Ok(_) => info!("✓ FOCUS: Sent WM_TAKE_FOCUS to window {}", window),
+                    Err(e) => warn!("Failed to send WM_TAKE_FOCUS to window {}: {}", window, e),
+                }
+            } else {
+                info!("ℹ️ FOCUS: WM_TAKE_FOCUS not supported by window {}", window);
+            }
+
+            // Set input focus to the client window (not the frame!)
+            match self.ctx.conn.set_input_focus(InputFocus::POINTER_ROOT, window, x11rb::CURRENT_TIME) {
+                Ok(_) => {
+                    info!("✓ FOCUS: Successfully set input focus to window {}", window);
+                    
+                    // Update _NET_ACTIVE_WINDOW
+                    if let Err(e) = self.ctx.conn.change_property32(PropMode::REPLACE, self.ctx.root_window, self.ctx.atoms._NET_ACTIVE_WINDOW, AtomEnum::WINDOW, &[window]) {
+                        warn!("Failed to update _NET_ACTIVE_WINDOW: {}", e);
+                    } else {
+                        info!("✓ FOCUS: Updated _NET_ACTIVE_WINDOW property");
+                    }
+                },
+                Err(e) => {
+                    error!("❌ FOCUS: Failed to set input focus to window {}: {}", window, e);
+                }
+            }
+        } else {
+            warn!("⚠ FOCUS: Window {} not found in clients", window);
         }
-        self.ctx.conn.set_input_focus(InputFocus::POINTER_ROOT, window, x11rb::CURRENT_TIME)?;
-        self.ctx.conn.change_property32(PropMode::REPLACE, self.ctx.root_window, self.ctx.atoms._NET_ACTIVE_WINDOW, AtomEnum::WINDOW, &[window])?;
         self.mru_stack.retain(|&w| w != window);
         self.mru_stack.insert(0, window);
         Ok(())
@@ -711,12 +886,13 @@ impl WindowManager {
 
     #[allow(dropping_copy_types)]
     pub fn run(&mut self) -> Result<()> {
-        self.paint()?;
+        if let Err(e) = self.paint() { warn!("Initial paint failed: {}", e); }
         let _ = self.update_net_workarea();
         loop {
             self.ctx.conn.flush()?;
             match self.ctx.conn.wait_for_event() {
                 Ok(event) => {
+                     debug!("Received event: {:?}", event);
                      let mut needs_paint = false;
                      match event {
                         Event::MapRequest(event) => {
@@ -730,7 +906,11 @@ impl WindowManager {
                         }
                         Event::UnmapNotify(event) => { self.unmanage_window(event.window)?; needs_paint = true; }
                         Event::DestroyNotify(event) => { self.unmanage_window(event.window)?; needs_paint = true; }
-                        Event::DamageNotify(event) => { let _ = self.ctx.conn.damage_subtract(event.damage, x11rb::NONE, x11rb::NONE); needs_paint = true; }
+                        Event::DamageNotify(event) => { 
+                            debug!("DamageNotify for window {}", event.drawable);
+                            let _ = self.ctx.conn.damage_subtract(event.damage, x11rb::NONE, x11rb::NONE); 
+                            needs_paint = true; 
+                        }
                         Event::PropertyNotify(event) => {
                              if event.atom == self.ctx.atoms._NET_WM_STRUT || event.atom == self.ctx.atoms._NET_WM_STRUT_PARTIAL {
                                   if let Ok(strut) = self.read_strut_property(event.window) {
@@ -755,7 +935,11 @@ impl WindowManager {
                         Event::Expose(event) => {
                             if event.count == 0 {
                                 if let Some(client) = self.find_client_by_frame(event.window) {
-                                    let (border, title) = if client.is_fullscreen { (0, 0) } else { (BORDER_WIDTH, TITLE_HEIGHT) };
+                                    let (border, title) = if client.is_fullscreen || client.is_desktop || client.is_dock { 
+                                        (0, 0) 
+                                    } else { 
+                                        (BORDER_WIDTH, TITLE_HEIGHT) 
+                                    };
                                     if let Err(_) = draw_decoration(&self.ctx, event.window, &client.name, client.width + 2*border, client.height + title + 2*border, title) { }
                                     needs_paint = true;
                                 }
@@ -777,52 +961,79 @@ impl WindowManager {
                                  if data[1] == self.ctx.atoms._NET_WM_STATE_FULLSCREEN { let _ = self.toggle_fullscreen(event.window); needs_paint = true; }
                              }
                         }
+                        Event::KeyPress(event) => {
+                             debug!("⌨️ KeyPress: detail={}, state={:?}, window={}", event.detail, event.state, event.event);
+                             // If we have a focused window, we might want to forward this if it was intercepted by a grab
+                             // For now just log it to see if they are coming through
+                        }
                         Event::ButtonPress(event) => {
-                            let client_info = self.clients.values().find(|c| c.frame == Some(event.event)).map(|c| (c.window, c.frame));
-                            if let Some((client_window, Some(frame))) = client_info {
-                                let _ = self.ctx.conn.configure_window(frame, &x11rb::protocol::xproto::ConfigureWindowAux::new().stack_mode(x11rb::protocol::xproto::StackMode::ABOVE));
-                                let _ = self.focus_window(client_window);
-                                needs_paint = true;
-                                if event.detail == 1 {
-                                    let geom_data = {
-                                        if let Ok(cookie) = self.ctx.conn.get_geometry(frame) {
-                                            cookie.reply().ok()
-                                        } else {
-                                            None
-                                        }
-                                    };
+                            debug!("🎯 ButtonPress: window={}, root=({}, {}), event=({}, {}), detail={}", event.event, event.root_x, event.root_y, event.event_x, event.event_y, event.detail);
+                            let mut client_window = None;
+                            let mut frame_window = None;
+                            let mut is_client_click = false;
 
+                            if let Some(c) = self.clients.get(&event.event) {
+                                // Clicked directly on the client window (intercepted by our grab)
+                                client_window = Some(event.event);
+                                frame_window = c.frame;
+                                is_client_click = true;
+                                info!("🖱️ Client click detected on win {} (frame {:?})", event.event, frame_window);
+                            } else if let Some(c) = self.clients.values().find(|c| c.frame == Some(event.event)) {
+                                // Clicked on the frame window
+                                client_window = Some(c.window);
+                                frame_window = Some(event.event);
+                                info!("🖱️ Frame click detected on frame {} (win {})", event.event, c.window);
+                            } else {
+                                debug!("ℹ️ ButtonPress on unknown window {}", event.event);
+                            }
+
+                            if let (Some(win), Some(frame)) = (client_window, frame_window) {
+                                // Raise window
+                                let _ = self.ctx.conn.configure_window(frame, &x11rb::protocol::xproto::ConfigureWindowAux::new().stack_mode(x11rb::protocol::xproto::StackMode::ABOVE));
+                                let _ = self.focus_window(win);
+                                needs_paint = true;
+
+                                if is_client_click {
+                                    // REPLAY the click so the app sees it. 
+                                    // This works because we used GrabMode::SYNC in manage_window's grab_button.
+                                    use x11rb::protocol::xproto::Allow;
+                                    if let Err(e) = self.ctx.conn.allow_events(Allow::REPLAY_POINTER, x11rb::CURRENT_TIME) {
+                                        warn!("Failed to replay pointer: {}", e);
+                                    } else {
+                                        debug!("✓ Replayed pointer to client {}", win);
+                                    }
+                                } else if event.detail == 1 {
+                                    // Native frame interaction (titlebar, resize handles, buttons)
+                                    let geom_data = self.ctx.conn.get_geometry(frame).ok().and_then(|c| c.reply().ok());
                                     if let Some(geom) = geom_data {
                                         let part = FrameGeometry::hit_test(geom.width, geom.height, event.event_x, event.event_y);
                                         let cursor = self.get_cursor_for_part(part);
                                         
-                                        let grab_ok = {
-                                            if let Ok(grab_cookie) = self.ctx.conn.grab_pointer(false, self.ctx.root_window, EventMask::BUTTON_RELEASE | EventMask::POINTER_MOTION, x11rb::protocol::xproto::GrabMode::ASYNC, x11rb::protocol::xproto::GrabMode::ASYNC, x11rb::NONE, cursor, x11rb::CURRENT_TIME) {
-                                                grab_cookie.reply().ok()
-                                            } else {
-                                                None
-                                            }
-                                        };
-
+                                        let grab_ok = self.ctx.conn.grab_pointer(false, self.ctx.root_window, EventMask::BUTTON_RELEASE | EventMask::POINTER_MOTION, x11rb::protocol::xproto::GrabMode::ASYNC, x11rb::protocol::xproto::GrabMode::ASYNC, x11rb::NONE, cursor, x11rb::CURRENT_TIME).ok().and_then(|c| c.reply().ok());
                                         if let Some(reply) = grab_ok {
                                             if reply.status == x11rb::protocol::xproto::GrabStatus::SUCCESS {
-                                                let is_double_click = (client_window == self.last_click_window) && (event.time.wrapping_sub(self.last_click_time) < 400);
-                                                if !is_double_click { self.last_click_time = event.time; self.last_click_window = client_window; }
+                                                let is_double_click = (win == self.last_click_window) && (event.time.wrapping_sub(self.last_click_time) < 400);
+                                                if !is_double_click { self.last_click_time = event.time; self.last_click_window = win; }
                                                 
                                                 let should_maximize = self.settings_manager.current.double_click_action == "maximize";
 
                                                 match part {
                                                     FramePart::TitleBar => {
                                                         if is_double_click {
-                                                            if should_maximize { let _ = self.toggle_maximize(client_window); }
+                                                            if should_maximize { let _ = self.toggle_maximize(win); }
                                                             let _ = self.ctx.conn.ungrab_pointer(x11rb::CURRENT_TIME);
                                                             self.drag_state = DragState::None;
                                                         } else {
-                                                            self.drag_state = DragState::Moving { window: client_window, start_pointer_x: event.root_x, start_pointer_y: event.root_y, start_frame_x: geom.x, start_frame_y: geom.y, snap: SnapZone::None };
+                                                            self.drag_state = DragState::Moving { window: win, start_pointer_x: event.root_x, start_pointer_y: event.root_y, start_frame_x: geom.x, start_frame_y: geom.y, snap: SnapZone::None };
                                                         }
                                                     }
-                                                    FramePart::CornerBottomRight => { self.drag_state = DragState::Resizing { window: client_window, start_pointer_x: event.root_x, start_pointer_y: event.root_y, start_width: geom.width, start_height: geom.height }; }
-                                                    FramePart::CloseButton => { let _ = self.send_delete_window(client_window); let _ = self.ctx.conn.ungrab_pointer(x11rb::CURRENT_TIME); }
+                                                    FramePart::CornerBottomRight => { 
+                                                        self.drag_state = DragState::Resizing { window: win, start_pointer_x: event.root_x, start_pointer_y: event.root_y, start_width: geom.width, start_height: geom.height }; 
+                                                    }
+                                                    FramePart::CloseButton => { 
+                                                        let _ = self.send_delete_window(win); 
+                                                        let _ = self.ctx.conn.ungrab_pointer(x11rb::CURRENT_TIME); 
+                                                    }
                                                     _ => { let _ = self.ctx.conn.ungrab_pointer(x11rb::CURRENT_TIME); }
                                                 }
                                             }
@@ -887,7 +1098,11 @@ impl WindowManager {
                         }
                         _ => {}
                      }
-                     if needs_paint { let _ = self.paint(); }
+                     if needs_paint { 
+                         if let Err(e) = self.paint() {
+                             error!("Paint failed: {}", e);
+                         }
+                     }
                  }
                  Err(e) => { tracing::error!("Error: {}", e); break; }
             }
@@ -896,8 +1111,4 @@ impl WindowManager {
     }
 }
 
-fn layer_from_client(c: &Client, ctx: &Context) -> u16 {
-    if c.window_type.contains(&ctx.atoms._NET_WM_WINDOW_TYPE_DOCK) { crate::window::LAYER_DOCK }
-    else if c.is_fullscreen { crate::window::LAYER_FULLSCREEN }
-    else { crate::window::LAYER_NORMAL }
-}
+

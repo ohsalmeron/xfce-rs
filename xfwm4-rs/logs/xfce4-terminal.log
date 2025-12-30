@@ -1,0 +1,637 @@
+[2m2025-12-30T03:38:13.770024Z[0m [34mDEBUG[0m [2mglycin::gobject[0m[2m:[0m Initialized logging
+[2m2025-12-30T03:38:13.771214Z[0m [34mDEBUG[0m [2mglycin::sandbox[0m[2m:[0m Testing bwrap availability with: "bwrap" "--unshare-all" "--die-with-parent" "--chdir" "/" "--ro-bind" "/usr" "/usr" "--dev" "/dev" "--ro-bind-try" "/etc/ld.so.cache" "/etc/ld.so.cache" "--ro-bind-try" "/nix/store" "/nix/store" "--tmpfs" "/tmp-home" "--tmpfs" "/tmp-run" "--clearenv" "--setenv" "HOME" "/tmp-home" "--setenv" "XDG_RUNTIME_DIR" "/tmp-run" "--setenv" "RUST_LOG" "debug" "--setenv" "XDG_RUNTIME_DIR" "/run/user/1000" "--symlink" "/usr/lib" "/lib" "--symlink" "/usr/lib" "/lib64" "--seccomp" "20" "/usr/bin/true"
+[2m2025-12-30T03:38:13.777402Z[0m [34mDEBUG[0m [2mglycin::sandbox[0m[2m:[0m bwrap availability test returned: Output { status: ExitStatus(unix_wait_status(0)), stdout: "", stderr: "Setting process memory limit\n" } (Signal: None, Code: Some(0))
+[2m2025-12-30T03:38:13.777450Z[0m [34mDEBUG[0m [2mglycin::sandbox[0m[2m:[0m bwrap sandboxing available: true
+[2m2025-12-30T03:38:13.777465Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m No existing loader/editor in pool. Spawning new one.
+[2m2025-12-30T03:38:13.777850Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Spawning loader/editor:
+    "bwrap" "--unshare-all" "--die-with-parent" "--chdir" "/" "--ro-bind" "/usr" "/usr" "--dev" "/dev" "--ro-bind-try" "/etc/ld.so.cache" "/etc/ld.so.cache" "--ro-bind-try" "/nix/store" "/nix/store" "--tmpfs" "/tmp-home" "--tmpfs" "/tmp-run" "--clearenv" "--setenv" "HOME" "/tmp-home" "--setenv" "XDG_RUNTIME_DIR" "/tmp-run" "--setenv" "RUST_LOG" "debug" "--setenv" "XDG_RUNTIME_DIR" "/run/user/1000" "--symlink" "/usr/lib" "/lib" "--symlink" "/usr/lib" "/lib64" "--seccomp" "21" "/usr/lib/glycin-loaders/2+/glycin-image-rs" "--dbus-fd" "20"
+[2m2025-12-30T03:38:13.780706Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: Setting process memory limit
+[2m2025-12-30T03:38:13.784325Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.784Z INFO  glycin_utils::instruction_handler] Loader glycin-image-rs v2.0.5 startup
+[2m2025-12-30T03:38:13.784350Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.784Z DEBUG glycin_utils::instruction_handler] Creating zbus connection to glycin
+[2m2025-12-30T03:38:13.784912Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.784Z DEBUG glycin_utils::instruction_handler] D-Bus connection to glycin created
+[2m2025-12-30T03:38:13.785781Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.786029Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.786Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/1
+[2m2025-12-30T03:38:13.786043Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.786Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/1
+[2m2025-12-30T03:38:13.791238Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.792110Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.793053Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.793Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/2
+[2m2025-12-30T03:38:13.793072Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.793Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/2
+[2m2025-12-30T03:38:13.793827Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.794448Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.794677Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.794Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/3
+[2m2025-12-30T03:38:13.794689Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.794Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/3
+[2m2025-12-30T03:38:13.795463Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.796102Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.796499Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.796Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/4
+[2m2025-12-30T03:38:13.796518Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.796Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/4
+[2m2025-12-30T03:38:13.798680Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.799591Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.799835Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.799Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/5
+[2m2025-12-30T03:38:13.799847Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.799Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/5
+[2m2025-12-30T03:38:13.800682Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.801258Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.801433Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.801Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/6
+[2m2025-12-30T03:38:13.801463Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.801Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/6
+[2m2025-12-30T03:38:13.801948Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.802447Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.802612Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.802Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/7
+[2m2025-12-30T03:38:13.802703Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.802Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/7
+[2m2025-12-30T03:38:13.861809Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.862421Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.864222Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.863Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/8
+[2m2025-12-30T03:38:13.864253Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.863Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/8
+[2m2025-12-30T03:38:13.864635Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.867845Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.868344Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.868Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/9
+[2m2025-12-30T03:38:13.868370Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.868Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/9
+[2m2025-12-30T03:38:13.868984Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.869543Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.869715Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.869Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/10
+[2m2025-12-30T03:38:13.869860Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.869Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/10
+[2m2025-12-30T03:38:13.870654Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.871299Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.871469Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.871Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/11
+[2m2025-12-30T03:38:13.871510Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.871Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/11
+[2m2025-12-30T03:38:13.872158Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.872600Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.873627Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.873Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/12
+[2m2025-12-30T03:38:13.873649Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.873Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/12
+[2m2025-12-30T03:38:13.876504Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.877015Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.877209Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.877Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/13
+[2m2025-12-30T03:38:13.877223Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.877Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/13
+[2m2025-12-30T03:38:13.878323Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:13.879096Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:13.879255Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.879Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/14
+[2m2025-12-30T03:38:13.879289Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:13.879Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/14
+[2m2025-12-30T03:38:18.342726Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m No existing loader/editor in pool. Spawning new one.
+[2m2025-12-30T03:38:18.343476Z[0m [34mDEBUG[0m [2mglycin::sandbox[0m[2m:[0m Couldn't canonicalize path "/home/bizkit/.fontconfig": No such file or directory (os error 2)
+[2m2025-12-30T03:38:18.343524Z[0m [34mDEBUG[0m [2mglycin::sandbox[0m[2m:[0m Couldn't canonicalize path "/home/bizkit/.local/share/fonts": No such file or directory (os error 2)
+[2m2025-12-30T03:38:18.343858Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Spawning loader/editor:
+    "bwrap" "--unshare-all" "--die-with-parent" "--chdir" "/" "--ro-bind" "/usr" "/usr" "--dev" "/dev" "--ro-bind-try" "/etc/ld.so.cache" "/etc/ld.so.cache" "--ro-bind-try" "/nix/store" "/nix/store" "--tmpfs" "/tmp-home" "--tmpfs" "/tmp-run" "--clearenv" "--setenv" "HOME" "/tmp-home" "--setenv" "XDG_RUNTIME_DIR" "/tmp-run" "--setenv" "RUST_LOG" "debug" "--setenv" "XDG_RUNTIME_DIR" "/run/user/1000" "--symlink" "/usr/lib" "/lib" "--symlink" "/usr/lib" "/lib64" "--ro-bind-try" "/etc/fonts/conf.d" "/etc/fonts/conf.d" "--ro-bind-try" "/etc/fonts/fonts.conf" "/etc/fonts/fonts.conf" "--ro-bind-try" "/home/bizkit/.cache/fontconfig" "/home/bizkit/.cache/fontconfig" "--ro-bind-try" "/home/bizkit/.fonts" "/home/bizkit/.fonts" "--ro-bind-try" "/var/cache/fontconfig" "/var/cache/fontconfig" "--bind-try" "/home/bizkit/.cache/glycin/usr/lib/glycin-loaders/2+/glycin-svg" "/home/bizkit/.cache/glycin/usr/lib/glycin-loaders/2+/glycin-svg" "--setenv" "XDG_CACHE_HOME" "/home/bizkit/.cache/glycin/usr/lib/glycin-loaders/2+/glycin-svg" "--seccomp" "28" "/usr/lib/glycin-loaders/2+/glycin-svg" "--dbus-fd" "27"
+[2m2025-12-30T03:38:18.346703Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: Setting process memory limit
+[2m2025-12-30T03:38:18.360431Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.360Z INFO  glycin_utils::instruction_handler] Loader glycin-svg v2.0.4 startup
+[2m2025-12-30T03:38:18.360456Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.360Z DEBUG glycin_utils::instruction_handler] Creating zbus connection to glycin
+[2m2025-12-30T03:38:18.360841Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.360Z DEBUG glycin_utils::instruction_handler] D-Bus connection to glycin created
+[2m2025-12-30T03:38:18.364160Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:18.364612Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 429.737µs
+[2m2025-12-30T03:38:18.364884Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.364Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/1
+[2m2025-12-30T03:38:18.364899Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.364Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/1
+[2m2025-12-30T03:38:18.366800Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:18.367889Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:18.368459Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 504.862µs
+[2m2025-12-30T03:38:18.370929Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.370Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/2
+[2m2025-12-30T03:38:18.370956Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.370Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/2
+[2m2025-12-30T03:38:18.372718Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:18.373793Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:18.374152Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 338.978µs
+[2m2025-12-30T03:38:18.374446Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.374Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/3
+[2m2025-12-30T03:38:18.374471Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.374Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/3
+[2m2025-12-30T03:38:18.376028Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:18.377136Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:18.377452Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 297.372µs
+[2m2025-12-30T03:38:18.377755Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.377Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/4
+[2m2025-12-30T03:38:18.377773Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.377Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/4
+[2m2025-12-30T03:38:18.379590Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:18.381375Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:18.381648Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 258.252µs
+[2m2025-12-30T03:38:18.381875Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.381Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/5
+[2m2025-12-30T03:38:18.381889Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:18.381Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/5
+[2m2025-12-30T03:38:19.708253Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.710186Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.710743Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 523.708µs
+[2m2025-12-30T03:38:19.711022Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.710Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/6
+[2m2025-12-30T03:38:19.711045Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.710Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/6
+[2m2025-12-30T03:38:19.713423Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.715803Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.716291Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 456.539µs
+[2m2025-12-30T03:38:19.716569Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.716Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/7
+[2m2025-12-30T03:38:19.716646Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.716Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/7
+[2m2025-12-30T03:38:19.725501Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.727332Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.727774Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 404.722µs
+[2m2025-12-30T03:38:19.728011Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.727Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/8
+[2m2025-12-30T03:38:19.728033Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.728Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/8
+[2m2025-12-30T03:38:19.730815Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.733179Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.733500Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 302.804µs
+[2m2025-12-30T03:38:19.733739Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.733Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/9
+[2m2025-12-30T03:38:19.733754Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.733Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/9
+[2m2025-12-30T03:38:19.940257Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.941167Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.941406Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 225.817µs
+[2m2025-12-30T03:38:19.941624Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.941Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/10
+[2m2025-12-30T03:38:19.941637Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.941Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/10
+[2m2025-12-30T03:38:19.942474Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.943105Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.943333Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 215.438µs
+[2m2025-12-30T03:38:19.943529Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.943Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/11
+[2m2025-12-30T03:38:19.943567Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.943Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/11
+[2m2025-12-30T03:38:19.944355Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.945140Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.945401Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 245.975µs
+[2m2025-12-30T03:38:19.945639Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.945Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/12
+[2m2025-12-30T03:38:19.945651Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.945Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/12
+[2m2025-12-30T03:38:19.947693Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.949474Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.949789Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 284.088µs
+[2m2025-12-30T03:38:19.950177Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.950Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/13
+[2m2025-12-30T03:38:19.950192Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.950Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/13
+[2m2025-12-30T03:38:19.951622Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.953265Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.953819Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 502.133µs
+[2m2025-12-30T03:38:19.954088Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.954Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/14
+[2m2025-12-30T03:38:19.954182Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.954Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/14
+[2m2025-12-30T03:38:19.956179Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.957787Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.958214Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 402.974µs
+[2m2025-12-30T03:38:19.958766Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.958Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/15
+[2m2025-12-30T03:38:19.958783Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.958Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/15
+[2m2025-12-30T03:38:19.960175Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.961134Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.961440Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 287.899µs
+[2m2025-12-30T03:38:19.961703Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.961Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/16
+[2m2025-12-30T03:38:19.961719Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.961Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/16
+[2m2025-12-30T03:38:19.962944Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.964577Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.964854Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 257.939µs
+[2m2025-12-30T03:38:19.965077Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.965Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/17
+[2m2025-12-30T03:38:19.965094Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.965Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/17
+[2m2025-12-30T03:38:19.966549Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.967275Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.967503Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 216.483µs
+[2m2025-12-30T03:38:19.967623Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.967Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/18
+[2m2025-12-30T03:38:19.967634Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.967Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/18
+[2m2025-12-30T03:38:19.968740Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.969256Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.969471Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 203.856µs
+[2m2025-12-30T03:38:19.969581Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.969Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/19
+[2m2025-12-30T03:38:19.969591Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.969Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/19
+[2m2025-12-30T03:38:19.970880Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:19.971486Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:19.971714Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 217.147µs
+[2m2025-12-30T03:38:19.971892Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.971Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/20
+[2m2025-12-30T03:38:19.971905Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:19.971Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/20
+[2m2025-12-30T03:38:20.657313Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.659653Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.660139Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 438.552µs
+[2m2025-12-30T03:38:20.660460Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.660Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/21
+[2m2025-12-30T03:38:20.660489Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.660Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/21
+[2m2025-12-30T03:38:20.662911Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.664899Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.665393Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 458.839µs
+[2m2025-12-30T03:38:20.665695Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.665Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/22
+[2m2025-12-30T03:38:20.665722Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.665Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/22
+[2m2025-12-30T03:38:20.668782Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.671008Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.671443Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 410.175µs
+[2m2025-12-30T03:38:20.671723Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.671Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/23
+[2m2025-12-30T03:38:20.671749Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.671Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/23
+[2m2025-12-30T03:38:20.673012Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.674023Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:20.674467Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.674Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/15
+[2m2025-12-30T03:38:20.674495Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.674Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/15
+[2m2025-12-30T03:38:20.677157Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.679007Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.679481Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 448.686µs
+[2m2025-12-30T03:38:20.679761Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.679Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/24
+[2m2025-12-30T03:38:20.679792Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.679Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/24
+[2m2025-12-30T03:38:20.681395Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.683086Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.683502Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 391.425µs
+[2m2025-12-30T03:38:20.683796Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.683Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/25
+[2m2025-12-30T03:38:20.683822Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.683Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/25
+[2m2025-12-30T03:38:20.686927Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.689040Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.690052Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 986.76µs
+[2m2025-12-30T03:38:20.690508Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.690Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/26
+[2m2025-12-30T03:38:20.690535Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.690Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/26
+[2m2025-12-30T03:38:20.692259Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.693190Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:20.693574Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.693Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/16
+[2m2025-12-30T03:38:20.693601Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.693Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/16
+[2m2025-12-30T03:38:20.696403Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.698293Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.698750Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 426.179µs
+[2m2025-12-30T03:38:20.698966Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.698Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/27
+[2m2025-12-30T03:38:20.698981Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.698Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/27
+[2m2025-12-30T03:38:20.700919Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.702399Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.702904Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 479.557µs
+[2m2025-12-30T03:38:20.703105Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.703Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/28
+[2m2025-12-30T03:38:20.703122Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.703Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/28
+[2m2025-12-30T03:38:20.704698Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.706020Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.706332Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 296.018µs
+[2m2025-12-30T03:38:20.706511Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.706Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/29
+[2m2025-12-30T03:38:20.706529Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.706Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/29
+[2m2025-12-30T03:38:20.707421Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.707980Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:20.708157Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.708Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/17
+[2m2025-12-30T03:38:20.708173Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.708Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/17
+[2m2025-12-30T03:38:20.709909Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.710952Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.711221Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 248.821µs
+[2m2025-12-30T03:38:20.711366Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.711Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/30
+[2m2025-12-30T03:38:20.711381Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.711Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/30
+[2m2025-12-30T03:38:20.712964Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.713894Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.714152Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 244.558µs
+[2m2025-12-30T03:38:20.714354Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.714Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/31
+[2m2025-12-30T03:38:20.714368Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.714Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/31
+[2m2025-12-30T03:38:20.715769Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.717261Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.717548Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 269.822µs
+[2m2025-12-30T03:38:20.717722Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.717Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/32
+[2m2025-12-30T03:38:20.717737Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.717Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/32
+[2m2025-12-30T03:38:20.718648Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.719174Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:20.719334Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.719Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/18
+[2m2025-12-30T03:38:20.719355Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.719Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/18
+[2m2025-12-30T03:38:20.725256Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.726702Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.727138Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 412.49µs
+[2m2025-12-30T03:38:20.727417Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.727Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/33
+[2m2025-12-30T03:38:20.727463Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.727Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/33
+[2m2025-12-30T03:38:20.729385Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.730610Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.730944Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 309.658µs
+[2m2025-12-30T03:38:20.731147Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.731Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/34
+[2m2025-12-30T03:38:20.731163Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.731Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/34
+[2m2025-12-30T03:38:20.733310Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.734811Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.735060Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 232.374µs
+[2m2025-12-30T03:38:20.735251Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.735Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/35
+[2m2025-12-30T03:38:20.735262Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.735Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/35
+[2m2025-12-30T03:38:20.735834Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.736326Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:20.736523Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.736Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/19
+[2m2025-12-30T03:38:20.736534Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.736Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/19
+[2m2025-12-30T03:38:20.737976Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.738924Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.739158Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 222.441µs
+[2m2025-12-30T03:38:20.739276Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.739Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/36
+[2m2025-12-30T03:38:20.739290Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.739Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/36
+[2m2025-12-30T03:38:20.740739Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.741497Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.741731Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 220.869µs
+[2m2025-12-30T03:38:20.741896Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.741Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/37
+[2m2025-12-30T03:38:20.741908Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.741Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/37
+[2m2025-12-30T03:38:20.742930Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.743844Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.744055Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 194.738µs
+[2m2025-12-30T03:38:20.744197Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.744Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/38
+[2m2025-12-30T03:38:20.744213Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.744Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/38
+[2m2025-12-30T03:38:20.744853Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.745209Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:20.745383Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.745Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/20
+[2m2025-12-30T03:38:20.745399Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.745Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/20
+[2m2025-12-30T03:38:20.748872Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.749882Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.750157Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 257.651µs
+[2m2025-12-30T03:38:20.750305Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.750Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/39
+[2m2025-12-30T03:38:20.750319Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.750Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/39
+[2m2025-12-30T03:38:20.751441Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.752303Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.752551Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 235.289µs
+[2m2025-12-30T03:38:20.752690Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.752Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/40
+[2m2025-12-30T03:38:20.752718Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.752Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/40
+[2m2025-12-30T03:38:20.754826Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:20.756053Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:20.756331Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 262.604µs
+[2m2025-12-30T03:38:20.756483Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.756Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/41
+[2m2025-12-30T03:38:20.756501Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:20.756Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/41
+[2m2025-12-30T03:38:21.373146Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.374935Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.375477Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 497.963µs
+[2m2025-12-30T03:38:21.375949Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.375Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/42
+[2m2025-12-30T03:38:21.375967Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.375Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/42
+[2m2025-12-30T03:38:21.377695Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.379274Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.379702Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 401.909µs
+[2m2025-12-30T03:38:21.379938Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.379Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/43
+[2m2025-12-30T03:38:21.379960Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.379Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/43
+[2m2025-12-30T03:38:21.382340Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.383956Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.384401Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 419.681µs
+[2m2025-12-30T03:38:21.384630Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.384Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/44
+[2m2025-12-30T03:38:21.384713Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.384Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/44
+[2m2025-12-30T03:38:21.385574Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.386356Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:21.386911Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.386Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/21
+[2m2025-12-30T03:38:21.386936Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.386Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/21
+[2m2025-12-30T03:38:21.391825Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.393131Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.393439Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 291.823µs
+[2m2025-12-30T03:38:21.393611Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.393Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/45
+[2m2025-12-30T03:38:21.393664Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.393Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/45
+[2m2025-12-30T03:38:21.395513Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.396485Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.396743Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 239.496µs
+[2m2025-12-30T03:38:21.396897Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.396Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/46
+[2m2025-12-30T03:38:21.396913Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.396Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/46
+[2m2025-12-30T03:38:21.398137Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.399117Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.399349Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 216.96µs
+[2m2025-12-30T03:38:21.399486Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.399Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/47
+[2m2025-12-30T03:38:21.399498Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.399Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/47
+[2m2025-12-30T03:38:21.400085Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.400500Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:21.400643Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.400Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/22
+[2m2025-12-30T03:38:21.400658Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.400Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/22
+[2m2025-12-30T03:38:21.403899Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.405079Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.405366Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 271.614µs
+[2m2025-12-30T03:38:21.405592Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.405Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/48
+[2m2025-12-30T03:38:21.405604Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.405Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/48
+[2m2025-12-30T03:38:21.406794Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.407806Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.408073Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 237.471µs
+[2m2025-12-30T03:38:21.408209Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.408Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/49
+[2m2025-12-30T03:38:21.408224Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.408Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/49
+[2m2025-12-30T03:38:21.409762Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.411040Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.411282Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 222.924µs
+[2m2025-12-30T03:38:21.411467Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.411Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/50
+[2m2025-12-30T03:38:21.411479Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.411Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/50
+[2m2025-12-30T03:38:21.412103Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.412480Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:21.412694Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.412Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/23
+[2m2025-12-30T03:38:21.412706Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.412Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/23
+[2m2025-12-30T03:38:21.414958Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.416155Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.416462Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 286.031µs
+[2m2025-12-30T03:38:21.416704Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.416Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/51
+[2m2025-12-30T03:38:21.416717Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.416Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/51
+[2m2025-12-30T03:38:21.418710Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.419849Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.420098Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 234.191µs
+[2m2025-12-30T03:38:21.420270Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.420Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/52
+[2m2025-12-30T03:38:21.420278Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.420Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/52
+[2m2025-12-30T03:38:21.654013Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.655519Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.655999Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 451.552µs
+[2m2025-12-30T03:38:21.656256Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.656Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/53
+[2m2025-12-30T03:38:21.656274Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.656Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/53
+[2m2025-12-30T03:38:21.657131Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.658323Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.658672Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 330.306µs
+[2m2025-12-30T03:38:21.658910Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.658Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/54
+[2m2025-12-30T03:38:21.658929Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.658Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/54
+[2m2025-12-30T03:38:21.660989Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.662354Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.662721Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 347.258µs
+[2m2025-12-30T03:38:21.662909Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.662Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/55
+[2m2025-12-30T03:38:21.662928Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.662Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/55
+[2m2025-12-30T03:38:21.665365Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:21.667033Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:21.667350Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 296.624µs
+[2m2025-12-30T03:38:21.667569Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.667Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/56
+[2m2025-12-30T03:38:21.667588Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:21.667Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/56
+[2m2025-12-30T03:38:22.236998Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.239165Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.239643Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 450.395µs
+[2m2025-12-30T03:38:22.239954Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.239Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/57
+[2m2025-12-30T03:38:22.239983Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.239Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/57
+[2m2025-12-30T03:38:22.242108Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.243947Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.244418Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 402.43µs
+[2m2025-12-30T03:38:22.244671Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.244Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/58
+[2m2025-12-30T03:38:22.244696Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.244Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/58
+[2m2025-12-30T03:38:22.247172Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.249136Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.249545Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 377.826µs
+[2m2025-12-30T03:38:22.249818Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.249Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/59
+[2m2025-12-30T03:38:22.249838Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.249Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/59
+[2m2025-12-30T03:38:22.250955Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.251815Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:22.252081Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.252Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/24
+[2m2025-12-30T03:38:22.252096Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.252Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/24
+[2m2025-12-30T03:38:22.254747Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.256581Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.257049Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 439.985µs
+[2m2025-12-30T03:38:22.257353Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.257Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/60
+[2m2025-12-30T03:38:22.257376Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.257Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/60
+[2m2025-12-30T03:38:22.260052Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.261689Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.262143Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 431.653µs
+[2m2025-12-30T03:38:22.262412Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.262Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/61
+[2m2025-12-30T03:38:22.262438Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.262Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/61
+[2m2025-12-30T03:38:22.264590Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.266924Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.267718Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 766.281µs
+[2m2025-12-30T03:38:22.268007Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.267Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/62
+[2m2025-12-30T03:38:22.268036Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.268Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/62
+[2m2025-12-30T03:38:22.269364Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.270308Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:22.270633Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.270Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/25
+[2m2025-12-30T03:38:22.270670Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.270Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/25
+[2m2025-12-30T03:38:22.280966Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.282472Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.282872Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 378.34µs
+[2m2025-12-30T03:38:22.283124Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.283Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/63
+[2m2025-12-30T03:38:22.283142Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.283Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/63
+[2m2025-12-30T03:38:22.285751Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.287103Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.287398Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 279.787µs
+[2m2025-12-30T03:38:22.287584Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.287Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/64
+[2m2025-12-30T03:38:22.287604Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.287Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/64
+[2m2025-12-30T03:38:22.288758Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.290287Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.290573Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 270.215µs
+[2m2025-12-30T03:38:22.290781Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.290Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/65
+[2m2025-12-30T03:38:22.290795Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.290Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/65
+[2m2025-12-30T03:38:22.291637Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.292124Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:22.292278Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.292Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/26
+[2m2025-12-30T03:38:22.292297Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.292Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/26
+[2m2025-12-30T03:38:22.293992Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.294969Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.295349Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 367.635µs
+[2m2025-12-30T03:38:22.295505Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.295Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/66
+[2m2025-12-30T03:38:22.295526Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.295Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/66
+[2m2025-12-30T03:38:22.297212Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.298355Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.298630Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 261.32µs
+[2m2025-12-30T03:38:22.298789Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.298Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/67
+[2m2025-12-30T03:38:22.298801Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.298Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/67
+[2m2025-12-30T03:38:22.300250Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.301407Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:22.301789Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 359.761µs
+[2m2025-12-30T03:38:22.301983Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.301Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/68
+[2m2025-12-30T03:38:22.302044Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.302Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/68
+[2m2025-12-30T03:38:22.302833Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:22.303436Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:22.303794Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.303Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/27
+[2m2025-12-30T03:38:22.303811Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:22.303Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/27
+[2m2025-12-30T03:38:23.024954Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.026634Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.027038Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 379.812µs
+[2m2025-12-30T03:38:23.027318Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.027Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/69
+[2m2025-12-30T03:38:23.027339Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.027Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/69
+[2m2025-12-30T03:38:23.029010Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.030535Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.030965Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 408.068µs
+[2m2025-12-30T03:38:23.031194Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.031Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/70
+[2m2025-12-30T03:38:23.031213Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.031Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/70
+[2m2025-12-30T03:38:23.033417Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.035335Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.035937Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 577.872µs
+[2m2025-12-30T03:38:23.036175Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.036Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/71
+[2m2025-12-30T03:38:23.036238Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.036Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/71
+[2m2025-12-30T03:38:23.037278Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.038085Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:23.038318Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.038Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/28
+[2m2025-12-30T03:38:23.038339Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.038Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/28
+[2m2025-12-30T03:38:23.040950Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.042592Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.043025Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 401.637µs
+[2m2025-12-30T03:38:23.043294Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.043Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/72
+[2m2025-12-30T03:38:23.043317Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.043Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/72
+[2m2025-12-30T03:38:23.045990Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.047578Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.047998Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 394.675µs
+[2m2025-12-30T03:38:23.048238Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.048Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/73
+[2m2025-12-30T03:38:23.048262Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.048Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/73
+[2m2025-12-30T03:38:23.051029Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.052780Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.053136Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 335.311µs
+[2m2025-12-30T03:38:23.053449Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.053Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/74
+[2m2025-12-30T03:38:23.053484Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.053Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/74
+[2m2025-12-30T03:38:23.054537Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.055208Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:23.055552Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.055Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/29
+[2m2025-12-30T03:38:23.055570Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.055Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/29
+[2m2025-12-30T03:38:23.403321Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.406006Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.406878Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 821.325µs
+[2m2025-12-30T03:38:23.407361Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.407Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/75
+[2m2025-12-30T03:38:23.407404Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.407Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/75
+[2m2025-12-30T03:38:23.409714Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.411710Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.412340Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 590.872µs
+[2m2025-12-30T03:38:23.412638Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.412Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/76
+[2m2025-12-30T03:38:23.412682Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.412Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/76
+[2m2025-12-30T03:38:23.415142Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.417349Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.417785Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 409.765µs
+[2m2025-12-30T03:38:23.418027Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.417Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/77
+[2m2025-12-30T03:38:23.418050Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.418Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/77
+[2m2025-12-30T03:38:23.418861Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.419477Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:23.419848Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.419Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/30
+[2m2025-12-30T03:38:23.419868Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.419Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/30
+[2m2025-12-30T03:38:23.427082Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.428477Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.428832Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 337.759µs
+[2m2025-12-30T03:38:23.429052Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.429Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/78
+[2m2025-12-30T03:38:23.429070Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.429Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/78
+[2m2025-12-30T03:38:23.430253Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.431355Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.431667Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 296.793µs
+[2m2025-12-30T03:38:23.431871Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.431Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/79
+[2m2025-12-30T03:38:23.431886Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.431Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/79
+[2m2025-12-30T03:38:23.433805Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.435161Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.435464Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 287.006µs
+[2m2025-12-30T03:38:23.435735Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.435Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/80
+[2m2025-12-30T03:38:23.435749Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.435Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/80
+[2m2025-12-30T03:38:23.436581Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.437176Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:23.437486Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.437Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/31
+[2m2025-12-30T03:38:23.437504Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.437Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/31
+[2m2025-12-30T03:38:23.842691Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.844468Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.844950Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 453.316µs
+[2m2025-12-30T03:38:23.845246Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.845Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/81
+[2m2025-12-30T03:38:23.845291Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.845Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/81
+[2m2025-12-30T03:38:23.847575Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.849246Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.849728Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 454.873µs
+[2m2025-12-30T03:38:23.850032Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.849Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/82
+[2m2025-12-30T03:38:23.850058Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.849Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/82
+[2m2025-12-30T03:38:23.852335Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.854588Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.855087Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 466.425µs
+[2m2025-12-30T03:38:23.855364Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.855Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/83
+[2m2025-12-30T03:38:23.855406Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.855Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/83
+[2m2025-12-30T03:38:23.856514Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.857313Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:23.857550Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.857Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/32
+[2m2025-12-30T03:38:23.857578Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.857Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/32
+[2m2025-12-30T03:38:23.927405Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.928549Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.928831Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 267.421µs
+[2m2025-12-30T03:38:23.929012Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.928Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/84
+[2m2025-12-30T03:38:23.929026Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.929Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/84
+[2m2025-12-30T03:38:23.931026Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.932307Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.932583Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 256.859µs
+[2m2025-12-30T03:38:23.932747Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.932Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/85
+[2m2025-12-30T03:38:23.932761Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.932Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/85
+[2m2025-12-30T03:38:23.934389Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.935576Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.935850Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 259.997µs
+[2m2025-12-30T03:38:23.936009Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.935Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/86
+[2m2025-12-30T03:38:23.936023Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.936Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/86
+[2m2025-12-30T03:38:23.936871Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.937408Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:23.937949Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.937Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/33
+[2m2025-12-30T03:38:23.938005Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.937Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/33
+[2m2025-12-30T03:38:23.940706Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.941770Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.942069Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 279.14µs
+[2m2025-12-30T03:38:23.942341Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.942Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/87
+[2m2025-12-30T03:38:23.942357Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.942Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/87
+[2m2025-12-30T03:38:23.943781Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.944760Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.945035Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 257.349µs
+[2m2025-12-30T03:38:23.945197Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.945Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/88
+[2m2025-12-30T03:38:23.945241Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.945Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/88
+[2m2025-12-30T03:38:23.946911Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.948137Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.948375Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 225.368µs
+[2m2025-12-30T03:38:23.948534Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.948Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/89
+[2m2025-12-30T03:38:23.948551Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.948Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/89
+[2m2025-12-30T03:38:23.949275Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.949851Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:23.949997Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.949Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/34
+[2m2025-12-30T03:38:23.950013Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.949Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/34
+[2m2025-12-30T03:38:23.953735Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.954733Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.954989Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 242.448µs
+[2m2025-12-30T03:38:23.955156Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.955Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/90
+[2m2025-12-30T03:38:23.955172Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.955Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/90
+[2m2025-12-30T03:38:23.956809Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.957733Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.957971Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 226.673µs
+[2m2025-12-30T03:38:23.958151Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.958Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/91
+[2m2025-12-30T03:38:23.958166Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.958Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/91
+[2m2025-12-30T03:38:23.960129Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.961430Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.961688Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 243.803µs
+[2m2025-12-30T03:38:23.961904Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.961Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/92
+[2m2025-12-30T03:38:23.961918Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.961Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/92
+[2m2025-12-30T03:38:23.962711Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.963206Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:23.963379Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.963Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/35
+[2m2025-12-30T03:38:23.963392Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.963Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/35
+[2m2025-12-30T03:38:23.965061Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.966419Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.966892Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 438.534µs
+[2m2025-12-30T03:38:23.967111Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.967Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/93
+[2m2025-12-30T03:38:23.967132Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.967Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/93
+[2m2025-12-30T03:38:23.968503Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.969587Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.969874Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 271.113µs
+[2m2025-12-30T03:38:23.970032Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.970Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/94
+[2m2025-12-30T03:38:23.970045Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.970Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/94
+[2m2025-12-30T03:38:23.971729Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.973117Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
+[2m2025-12-30T03:38:23.973403Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 273.52µs
+[2m2025-12-30T03:38:23.973534Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.973Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/95
+[2m2025-12-30T03:38:23.973546Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.973Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/95
+[2m2025-12-30T03:38:23.974204Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
+[2m2025-12-30T03:38:23.974558Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
+[2m2025-12-30T03:38:23.974734Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.974Z DEBUG glycin_utils::dbus_loader_api] Disconnecting /org/gnome/glycin/image/36
+[2m2025-12-30T03:38:23.974748Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stderr: [2025-12-30T03:38:23.974Z DEBUG glycin_utils::dbus_loader_api] Removed /org/gnome/glycin/image/36

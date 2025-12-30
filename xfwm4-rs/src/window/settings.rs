@@ -6,12 +6,14 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct Settings {
     pub double_click_action: String,
+    pub replay_clicks: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
             double_click_action: "maximize".to_string(),
+            replay_clicks: true,
         }
     }
 }

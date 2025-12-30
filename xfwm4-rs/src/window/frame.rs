@@ -2,6 +2,7 @@
 pub const TITLE_HEIGHT: u16 = 24;
 pub const BORDER_WIDTH: u16 = 4;
 
+#[derive(Debug, Clone, Copy)]
 pub struct FrameGeometry {
     pub x: i16,
     pub y: i16,
