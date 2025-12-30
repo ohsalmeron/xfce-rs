@@ -1,11 +1,11 @@
 [package]
-name = "navigator"
+name = "xfce-rs-navigator"
 version = "0.1.0"
 edition = "2021"
 authors = ["XFCE.rs Contributors"]
 description = "Navigator for XFCE.rs desktop environment"
 license = "GPL-2.0-or-later"
-repository = "https://github.com/your-username/xfce-rs"
+repository = "https://github.com/ohsalmeron/xfce-rs"
 keywords = ["xfce", "app-finder", "launcher", "search"]
 categories = ["gui"]
 
@@ -27,10 +27,10 @@ linicon = { workspace = true }
 rusqlite = "0.31"
 chrono = "0.4"
 
-xfce-rs-config = { path = "../area/xfce-rs/crates/xfce-rs-config" }
-xfce-rs-utils = { path = "../area/xfce-rs/crates/xfce-rs-utils" }
-xfce-rs-ui = { path = "../area/xfce-rs/crates/xfce-rs-ui" }
-xfce-rs-menu = { path = "../area/xfce-rs/crates/xfce-rs-menu" }
+xfce-rs-config = { path = "../../crates/xfce-rs-config" }
+xfce-rs-utils = { path = "../../crates/xfce-rs-utils" }
+xfce-rs-ui = { path = "../../crates/xfce-rs-ui" }
+xfce-rs-menu = { path = "../../crates/xfce-rs-menu" }
 
 [dev-dependencies]
 tempfile = "3.8"

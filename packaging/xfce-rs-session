@@ -33,11 +33,16 @@ else
 fi
 
 # 4. Start Navigator (App Launcher)
-if command -v navigator >/dev/null 2>&1; then
-    navigator &
+if command -v xfce-rs-navigator >/dev/null 2>&1; then
+    xfce-rs-navigator &
 fi
 
-# 5. Start xfwm4-rs as the Session Master
+# 5. Start Audio Control
+if command -v xfce-rs-audio >/dev/null 2>&1; then
+    xfce-rs-audio &
+fi
+
+# 6. Start xfwm4-rs as the Session Master
 # When this exits, the session ends.
 if command -v xfwm4-rs >/dev/null 2>&1; then
     exec xfwm4-rs

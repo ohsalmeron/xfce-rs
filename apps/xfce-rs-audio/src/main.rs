@@ -13,7 +13,7 @@ mod devices;
 mod notifications;
 mod sink_inputs;
 
-use audio::{AudioDevice, AudioDeviceDetails, DevicePort, NowPlaying};
+use xfce_rs_audio::{AudioDevice, AudioDeviceDetails, DevicePort, NowPlaying};
 
 pub fn main() -> iced::Result {
     // Initialize tracing subscriber for logging

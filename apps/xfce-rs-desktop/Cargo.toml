@@ -1,0 +1,31 @@
+[package]
+name = "xfce-rs-desktop"
+version = "0.1.0"
+edition = "2021"
+authors = ["XFCE.rs Contributors"]
+description = "Desktop manager for XFCE.rs desktop environment"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/ohsalmeron/xfce-rs"
+keywords = ["xfce", "desktop", "wallpaper", "icons"]
+categories = ["gui"]
+
+[dependencies]
+iced = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+config = { workspace = true }
+walkdir = { workspace = true }
+notify = { workspace = true }
+png = { workspace = true }
+xdg = "2.5"
+
+xfce-rs-config = { path = "../../crates/xfce-rs-config" }
+xfce-rs-utils = { path = "../../crates/xfce-rs-utils" }
+xfce-rs-ui = { path = "../../crates/xfce-rs-ui" }
+xfce-rs-menu = { path = "../../crates/xfce-rs-menu" }
+
+[dev-dependencies]
+tempfile = "3.8"

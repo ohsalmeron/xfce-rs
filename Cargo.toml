@@ -2,14 +2,21 @@
 resolver = "2"
 
 members = [
-    "audio",
-    "navigator",
-    "xfwm4-rs",
-    "panel",
+    "apps/xfce-rs-audio",
+    "apps/xfce-rs-navigator",
+    "apps/xfce-rs-wm",
+    "apps/xfce-rs-panel",
+    "apps/xfce-rs-settings",
+    "apps/xfce-rs-desktop",
+    "apps/xfce-rs-thunar",
     "panel-plugins/clock",
     "panel-plugins/separator",
     "panel-plugins/showdesktop",
-    "xfce4-settings",
+    "crates/xfce-rs-ui",
+    "crates/xfce-rs-config",
+    "crates/xfce-rs-utils",
+    "crates/xfce-rs-ipc",
+    "crates/xfce-rs-menu",
 ]
 
 [workspace.dependencies]

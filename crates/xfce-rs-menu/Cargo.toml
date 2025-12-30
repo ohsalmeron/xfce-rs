@@ -1,0 +1,25 @@
+[package]
+name = "xfce-rs-menu"
+version = "0.1.0"
+edition = "2021"
+authors = ["XFCE.rs Contributors"]
+description = "Desktop menu system for XFCE.rs (freedesktop.org compliant)"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/ohsalmeron/xfce-rs"
+keywords = ["xfce", "menu", "desktop", "freedesktop"]
+categories = ["os::unix-apis"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
+regex = { workspace = true }
+xdg = "2.5"
+dirs = "5.0"
+
+[dev-dependencies]
+tempfile = "3.8"

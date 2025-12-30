@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["XFCE.rs Contributors"]
 description = "Separator plugin for XFCE.rs panel"
 license = "GPL-2.0-or-later"
-repository = "https://github.com/your-username/xfce-rs"
+repository = "https://github.com/ohsalmeron/xfce-rs"
 keywords = ["xfce", "panel", "separator"]
 categories = ["gui"]
 
@@ -15,4 +15,4 @@ path = "src/main.rs"
 
 [dependencies]
 iced = { workspace = true }
-xfce-rs-ui = { path = "../../area/xfce-rs/crates/xfce-rs-ui" }
+xfce-rs-ui = { path = "../../crates/xfce-rs-ui" }

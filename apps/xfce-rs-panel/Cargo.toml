@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["XFCE.rs Contributors"]
 description = "Panel system for XFCE.rs desktop environment"
 license = "GPL-2.0-or-later"
-repository = "https://github.com/your-username/xfce-rs"
+repository = "https://github.com/ohsalmeron/xfce-rs"
 keywords = ["xfce", "panel", "desktop"]
 categories = ["gui"]
 
@@ -29,6 +29,6 @@ config = { workspace = true }
 zbus = { workspace = true }
 freedesktop-desktop-entry = { workspace = true }
 
-xfce-rs-ui = { path = "../area/xfce-rs/crates/xfce-rs-ui" }
-xfce-rs-config = { path = "../area/xfce-rs/crates/xfce-rs-config" }
-xfce-rs-utils = { path = "../area/xfce-rs/crates/xfce-rs-utils" }
+xfce-rs-ui = { path = "../../crates/xfce-rs-ui" }
+xfce-rs-config = { path = "../../crates/xfce-rs-config" }
+xfce-rs-utils = { path = "../../crates/xfce-rs-utils" }
