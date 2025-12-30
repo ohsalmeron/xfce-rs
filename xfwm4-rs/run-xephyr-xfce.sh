@@ -45,10 +45,7 @@ dbus-run-session -- bash -c "
     xfce4-terminal > \"$LOG_DIR/xfce4-terminal.log\" 2>&1 &
     
     echo 'Starting xfwm4-rs (foreground)...'
-    /home/bizkit/GitHub/xfce-rs/target/release/xfwm4-rs > \"$LOG_DIR/xfwm4-rs.log\" 2>&1
-    
-    echo 'xfwm4-rs exited, running health check...'
-    /home/bizkit/GitHub/xfce-rs/xfwm4-rs/health-check.sh
+    /home/bizkit/GitHub/xfce-rs/target/debug/xfwm4-rs > \"$LOG_DIR/xfwm4-rs.log\" 2>&1
 "
 
 echo "Cleaning up..."

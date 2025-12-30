@@ -1,0 +1,55 @@
+# Maintainer: XFCE.rs Contributors
+pkgname=xfce-rs-git
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="A standard-compliant XFCE experience driven by Rust components"
+arch=('x86_64')
+url="https://github.com/ohsalmeron/xfce-rs"
+license=('GPL-2.0-or-later')
+depends=('xfce4-settings' 'xfdesktop' 'xfce4-panel' 'libx11' 'libxrender' 'libxdamage' 'libxcomposite' 'zbus')
+makedepends=('cargo' 'git')
+provides=('xfce-rs')
+conflicts=('xfce-rs')
+source=("git+https://github.com/ohsalmeron/xfce-rs.git"
+        "xfce-rs-session"
+        "xfce-rs.desktop")
+sha256sums=('SKIP'
+            'SKIP'
+            'SKIP')
+
+pkgver() {
+  cd "$srcdir/xfce-rs"
+  git describe --long --tags | sed 's/\([^-]*-\)g/r\1/;s/-/./g'
+}
+
+prepare() {
+  cd "$srcdir/xfce-rs"
+  export CARGO_HOME="$srcdir/cargo"
+  cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+}
+
+build() {
+  cd "$srcdir/xfce-rs"
+  export CARGO_HOME="$srcdir/cargo"
+  # Build the main components
+  cargo build --release --workspace
+}
+
+package() {
+  cd "$srcdir/xfce-rs"
+  
+  # Install binaries
+  install -Dm755 "target/release/xfwm4-rs" "$pkgdir/usr/bin/xfwm4-rs"
+  install -Dm755 "target/release/xfce-rs-panel" "$pkgdir/usr/bin/xfce-rs-panel"
+  install -Dm755 "target/release/navigator" "$pkgdir/usr/bin/navigator"
+  
+  # Install session script
+  install -Dm755 "$srcdir/xfce-rs-session" "$pkgdir/usr/bin/xfce-rs-session"
+  
+  # Install desktop entry
+  install -Dm644 "$srcdir/xfce-rs.desktop" "$pkgdir/usr/share/xsessions/xfce-rs.desktop"
+  
+  # Install license and readme
+  install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

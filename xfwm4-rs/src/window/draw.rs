@@ -44,18 +44,30 @@ pub fn draw_decoration(ctx: &Context, frame: Window, title: &str, width: u16, he
             }
         }
         
-        // 4. Draw Close Button (Mock)
-        let close_x = width as i16 - 20;
+        // 4. Draw Decoration Buttons (Mock)
         let btn_y = 6;
         let btn_size = 12;
-        
+
+        // Close Button (Red)
+        let close_x = width as i16 - 20;
         let gc_red = ctx.conn.generate_id()?;
-        let values_red = CreateGCAux::new().foreground(0xff5555);
-        ctx.conn.create_gc(gc_red, frame, &values_red)?;
-        
-        let close_btn = Rectangle { x: close_x, y: btn_y, width: btn_size, height: btn_size };
-        ctx.conn.poly_fill_rectangle(frame, gc_red, &[close_btn])?;
+        ctx.conn.create_gc(gc_red, frame, &CreateGCAux::new().foreground(0xff5555))?;
+        ctx.conn.poly_fill_rectangle(frame, gc_red, &[Rectangle { x: close_x, y: btn_y, width: btn_size, height: btn_size }])?;
         let _ = ctx.conn.free_gc(gc_red);
+
+        // Maximize Button (Green)
+        let max_x = width as i16 - 40;
+        let gc_green = ctx.conn.generate_id()?;
+        ctx.conn.create_gc(gc_green, frame, &CreateGCAux::new().foreground(0x50fa7b))?;
+        ctx.conn.poly_fill_rectangle(frame, gc_green, &[Rectangle { x: max_x, y: btn_y, width: btn_size, height: btn_size }])?;
+        let _ = ctx.conn.free_gc(gc_green);
+
+        // Minimize Button (Yellow)
+        let min_x = width as i16 - 60;
+        let gc_yellow = ctx.conn.generate_id()?;
+        ctx.conn.create_gc(gc_yellow, frame, &CreateGCAux::new().foreground(0xf1fa8c))?;
+        ctx.conn.poly_fill_rectangle(frame, gc_yellow, &[Rectangle { x: min_x, y: btn_y, width: btn_size, height: btn_size }])?;
+        let _ = ctx.conn.free_gc(gc_yellow);
     }
     
     // Cleanup

@@ -1,0 +1,47 @@
+#!/bin/sh
+# xfce-rs-session: Startup script for XFCE-RS session
+
+# Set session name for portals and other services
+export DESKTOP_SESSION=xfce-rs
+export XDG_SESSION_DESKTOP=xfce-rs
+export XDG_CURRENT_DESKTOP=XFCE-RS
+
+# Ensure our binaries are in PATH if installed via pacman/AUR
+# (The PKGBUILD will install these to /usr/bin)
+
+echo "Starting XFCE-RS Session..."
+
+# 1. Start Xfce settings manager (handles themes, scaling, cursors)
+if command -v xfsettingsd >/dev/null 2>&1; then
+    xfsettingsd --replace &
+fi
+
+# 2. Start Xfce desktop manager (background and icons)
+if command -v xfdesktop >/dev/null 2>&1; then
+    xfdesktop &
+fi
+
+# 3. Start XFCE-RS Panel
+# If we have the Rust panel installed as 'xfce-rs-panel'
+if command -v xfce-rs-panel >/dev/null 2>&1; then
+    xfce-rs-panel &
+else
+    # Fallback to standard panel if Rust one missing
+    if command -v xfce4-panel >/dev/null 2>&1; then
+        xfce4-panel &
+    fi
+fi
+
+# 4. Start Navigator (App Launcher)
+if command -v navigator >/dev/null 2>&1; then
+    navigator &
+fi
+
+# 5. Start xfwm4-rs as the Session Master
+# When this exits, the session ends.
+if command -v xfwm4-rs >/dev/null 2>&1; then
+    exec xfwm4-rs
+else
+    # Safety fallback to original xfwm4 if ours is missing
+    exec xfwm4
+fi

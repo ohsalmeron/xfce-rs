@@ -61,6 +61,18 @@ impl FrameGeometry {
             return FramePart::CloseButton;
         }
 
+        // Maximize Button (Right - 40)
+        let max_x = w - 40;
+        if y >= btn_y && y < btn_y + btn_size && x >= max_x && x < max_x + btn_size {
+            return FramePart::MaximizeButton;
+        }
+
+        // Minimize Button (Right - 60)
+        let min_x = w - 60;
+        if y >= btn_y && y < btn_y + btn_size && x >= min_x && x < min_x + btn_size {
+            return FramePart::MinimizeButton;
+        }
+
         // Top Edge vs TitleBar
         if y < resize_margin {
              return FramePart::TopBorder;
@@ -88,6 +100,8 @@ pub enum FramePart {
     CornerBottomLeft,
     CornerBottomRight,
     CloseButton,
+    MaximizeButton,
+    MinimizeButton,
     None,
 }
 
