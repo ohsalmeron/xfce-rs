@@ -261,9 +261,11 @@ impl WindowManager {
         
 
 
+        let is_csd = self.has_csd(win);
+        
         let (motif_decor, motif_title) = self.read_motif_hints(win);
         
-        let (border_width, title_height) = if is_dock || is_fullscreen || is_desktop || !motif_decor {
+        let (border_width, title_height) = if is_dock || is_fullscreen || is_desktop || !motif_decor || is_csd {
             (0, 0)
         } else if !motif_title {
             (BORDER_WIDTH, 0)
@@ -953,6 +955,26 @@ impl WindowManager {
             }
         }
         (true, true)
+    }
+
+    fn has_csd(&self, window: Window) -> bool {
+        // 1. Check for _GTK_FRAME_EXTENTS
+        if let Ok(cookie) = self.ctx.conn.get_property(
+            false,
+            window,
+            self.ctx.atoms._GTK_FRAME_EXTENTS,
+            AtomEnum::CARDINAL,
+            0,
+            4
+        ) {
+            if let Ok(reply) = cookie.reply() {
+                if !reply.value.is_empty() {
+                    debug!("Window {} has _GTK_FRAME_EXTENTS - treating as CSD", window);
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     #[allow(dropping_copy_types)]

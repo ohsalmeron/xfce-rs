@@ -31,6 +31,7 @@ atom_manager! {
         WM_TAKE_FOCUS,
         WM_TRANSIENT_FOR,
         _MOTIF_WM_HINTS,
+        _GTK_FRAME_EXTENTS,
         UTF8_STRING,
     }
 }

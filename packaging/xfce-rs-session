@@ -42,7 +42,11 @@ if command -v xfce-rs-audio >/dev/null 2>&1; then
     xfce-rs-audio &
 fi
 
-# 6. Start xfwm4-rs as the Session Master
+# 6. Start Custom User Applications
+# You can add your own apps here
+# (e.g., discord &, code &, etc.)
+
+# 7. Start xfwm4-rs as the Session Master
 # When this exits, the session ends.
 if command -v xfwm4-rs >/dev/null 2>&1; then
     exec xfwm4-rs
