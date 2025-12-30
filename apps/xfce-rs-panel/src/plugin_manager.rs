@@ -95,10 +95,6 @@ impl PluginManager {
         Ok(())
     }
 
-    pub fn is_running(&self, name: &str) -> bool {
-        self.running_plugins.contains_key(name)
-    }
-
     pub fn stop_all(&mut self) {
         let names: Vec<String> = self.running_plugins.keys().cloned().collect();
         for name in names {

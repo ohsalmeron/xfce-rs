@@ -1,5 +1,5 @@
 use iced::widget::{container, row, mouse_area, button, text, column};
-use iced::{Alignment, Element, Length, Task, Theme, Point, window};
+use iced::{Alignment, Element, Length, Task, Theme, Point};
 use tracing::{info, warn};
 use xfce_rs_ui::styles;
 
@@ -10,7 +10,7 @@ mod settings_app;
 
 use plugin_manager::PluginManager;
 use plugin_slot::PluginSlot;
-use settings::{PanelSettings, PanelPosition, PanelMode};
+use settings::PanelSettings;
 use settings_app::SettingsApp;
 
 pub fn main() -> iced::Result {
@@ -179,7 +179,6 @@ impl PanelApp {
                     info!("Settings changed, applying: size={}, position={:?}, mode={:?}", 
                         new_settings.size, new_settings.position, new_settings.mode);
                     
-                    let old_settings = self.settings.clone();
                     self.settings = new_settings.clone();
                     
                     // Update settings app if it's open
@@ -337,7 +336,7 @@ impl PanelApp {
                         )
                         .width(Length::Fill)
                         .height(Length::Fill)
-                        .style(|theme| {
+                        .style(|_theme| {
                             iced::widget::container::Style {
                                 background: Some(iced::Background::Color(iced::Color::from_rgba(0.0, 0.0, 0.0, 0.7))),
                                 ..Default::default()

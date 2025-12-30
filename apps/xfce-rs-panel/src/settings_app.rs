@@ -2,7 +2,7 @@ use iced::widget::{
     column, container, row, text, button, slider, pick_list, space,
 };
 use iced::widget::checkbox;
-use iced::{Alignment, Element, Length, Task, Theme};
+use iced::{Alignment, Element, Length, Task};
 use xfce_rs_ui::styles;
 use xfce_rs_ui::colors;
 
@@ -26,8 +26,6 @@ pub enum Message {
     PopdownSpeedChanged(f32),
     ModeChanged(PanelMode),
     NRowsChanged(f32),
-    LengthChanged(Option<f32>),
-    LengthMaxChanged(Option<f32>),
     EnableStrutsToggled(bool),
     KeepBelowToggled(bool),
     Save,
@@ -43,21 +41,6 @@ impl SettingsApp {
             },
             Task::none(),
         )
-    }
-
-    pub fn title(&self) -> String {
-        String::from("Panel Settings")
-    }
-
-    pub fn theme(&self) -> Theme {
-        Theme::Dark
-    }
-
-    pub fn style(&self, theme: &Theme) -> iced::theme::Style {
-        iced::theme::Style {
-            background_color: iced::Color::TRANSPARENT,
-            text_color: theme.palette().text,
-        }
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -114,16 +97,6 @@ impl SettingsApp {
             }
             Message::NRowsChanged(val) => {
                 self.settings.nrows = val as u32;
-                self.saved = false;
-                Task::none()
-            }
-            Message::LengthChanged(val) => {
-                self.settings.length = val.map(|v| v as u32);
-                self.saved = false;
-                Task::none()
-            }
-            Message::LengthMaxChanged(val) => {
-                self.settings.length_max = val.map(|v| v as u32);
                 self.saved = false;
                 Task::none()
             }
@@ -370,7 +343,4 @@ impl SettingsApp {
         .into()
     }
 
-    pub fn get_settings(&self) -> &PanelSettings {
-        &self.settings
-    }
 }

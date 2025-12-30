@@ -29,6 +29,7 @@ pub enum SnapZone {
     Top,
 }
 
+
 #[derive(Debug, Clone, Copy)]
 pub enum DragState {
     None,
@@ -76,30 +77,36 @@ pub struct WindowManager {
 
 impl WindowManager {
     pub fn new(ctx: Context, settings_manager: SettingsManager) -> Result<Self> {
+        let error_tracker = ErrorTracker::new();
+
         // Initialize extensions with error checking
-        match ctx.conn.composite_query_version(0, 4)?.reply() {
-            Ok(ver) => info!("Composite extension v{}.{}", ver.major_version, ver.minor_version),
-            Err(e) => error!("Failed to query composite version: {}", e),
-        }
-        match ctx.conn.damage_query_version(1, 1)?.reply() {
-            Ok(ver) => info!("Damage extension v{}.{}", ver.major_version, ver.minor_version),
-            Err(e) => error!("Failed to query damage version: {}", e),
-        }
-        match XFixesExt::xfixes_query_version(&ctx.conn, 5, 0)?.reply() {
-            Ok(ver) => info!("XFixes extension v{}.{}", ver.major_version, ver.minor_version),
-            Err(e) => error!("Failed to query xfixes version: {}", e),
-        }
-        match ShapeExt::shape_query_version(&ctx.conn)?.reply() {
-            Ok(ver) => info!("Shape extension v{}.{}", ver.major_version, ver.minor_version),
-            Err(e) => error!("Failed to query shape version: {}", e),
-        }
+        let _ = error_tracker.warn_if_failed(
+            ctx.conn.composite_query_version(0, 4)?.reply().map(|_| ()),
+            "query composite version",
+            crate::window::error::ErrorCategory::Compositor
+        );
+        let _ = error_tracker.warn_if_failed(
+            ctx.conn.damage_query_version(1, 1)?.reply().map(|_| ()),
+            "query damage version",
+            crate::window::error::ErrorCategory::X11
+        );
+        let _ = error_tracker.warn_if_failed(
+            XFixesExt::xfixes_query_version(&ctx.conn, 5, 0)?.reply().map(|_| ()),
+            "query xfixes version",
+            crate::window::error::ErrorCategory::X11
+        );
+        let _ = error_tracker.warn_if_failed(
+            ShapeExt::shape_query_version(&ctx.conn)?.reply().map(|_| ()),
+            "query shape version",
+            crate::window::error::ErrorCategory::X11
+        );
 
         let cursors = Cursors::new(&ctx.conn, ctx.screen_num)?;
         let mut compositor = Compositor::new(&ctx.conn, ctx.root_window, ctx.screen_num)?;
 
         // Enable compositor immediately
         if let Err(e) = compositor.enable(&ctx.conn) {
-             error!("Failed to enable compositor: {}", e);
+             error_tracker.record_compositor_error("enable compositor", e);
         } else {
              info!("Compositor enabled.");
              log_warn(compositor.set_cursor(&ctx.conn, cursors.normal), "set compositor cursor");
@@ -157,7 +164,7 @@ impl WindowManager {
             mru_stack: Vec::new(),
             settings_manager,
             unmanaged_windows: HashMap::new(),
-            error_tracker: ErrorTracker::new(),
+            error_tracker,
         })
     }
 
@@ -389,7 +396,7 @@ impl WindowManager {
                               debug!("Created Picture {} (depth {}) for frame {}", pict, frame_geom.depth, frame_win);
                               client.picture = Some(pict); 
                           },
-                          Err(e) => error!("Failed to create frame picture: {}", e),
+                          Err(e) => self.error_tracker.record_compositor_error("create frame picture", e),
                       }
                   }
 
@@ -408,7 +415,7 @@ impl WindowManager {
                                   debug!("Created Picture {} (depth {}) for client window {}", pict, win_geom.depth, win);
                                   client.content_picture = Some(pict);
                               },
-                              Err(e) => error!("Failed to create client picture: {}", e),
+                              Err(e) => self.error_tracker.record_compositor_error("create client picture", e),
                           }
                       }
                   }
@@ -418,7 +425,7 @@ impl WindowManager {
                  debug!("Creating damage {} for window {}", dmg, win);
                  match self.ctx.conn.damage_create(dmg, win, ReportLevel::NON_EMPTY) {
                      Ok(_) => client.damage = Some(dmg),
-                     Err(e) => error!("Failed to create damage resource {}: {}", dmg, e),
+                     Err(e) => self.error_tracker.record_x11_error("create damage resource", e),
                  }
              }
         }
@@ -431,9 +438,11 @@ impl WindowManager {
         let width = geom.width + (2 * border_width);
         let height = geom.height + title_height + (2 * border_width);
         debug!("Drawing decoration for frame {} (title: {})", frame_win, client.name);
-        if let Err(e) = draw_decoration(&self.ctx, frame_win, &client.name, width, height, title_height) {
-             warn!("Failed to draw initial decoration: {}", e);
-        }
+        let _ = self.error_tracker.warn_if_failed(
+            draw_decoration(&self.ctx, frame_win, &client.name, width, height, title_height),
+            "draw initial decoration",
+            crate::window::error::ErrorCategory::Window
+        );
         
         self.clients.insert(win, client);
         self.mru_stack.retain(|&w| w != win);
@@ -1228,7 +1237,7 @@ impl WindowManager {
                      }
                      _ => {}
                  }
-                 if let (Some(ns), Some(win)) = (next_snap, ns_val) {
+                 if let (Some(ns), Some(_win)) = (next_snap, ns_val) {
                       if let DragState::Moving { ref mut snap, .. } = self.drag_state { *snap = ns; }
                  }
             }
@@ -1274,8 +1283,15 @@ impl WindowManager {
             
             if needs_paint {
                 if let Err(e) = self.paint() {
-                    error!("Paint failed: {}", e);
+                    self.error_tracker.record_compositor_error("paint loop", e);
                 }
+            }
+
+            // Periodic health check
+            let health = self.error_tracker.health_check();
+            if !health.is_healthy {
+                warn!("System health degraded: X11 errors: {}, Compositor errors: {}, Window errors: {}", 
+                    health.x11_errors, health.compositor_errors, health.window_errors);
             }
         }
         Ok(())

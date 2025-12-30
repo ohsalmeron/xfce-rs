@@ -1,7 +1,6 @@
 use thiserror::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tokio::sync::RwLock;
 use tracing::{info, error};
 
 /// Error types for IPC operations
@@ -28,13 +27,11 @@ pub enum IpcMessage {
 
 /// Main IPC service for XFCE.rs
 pub struct XfceIpcService {
-    message_handlers: RwLock<Vec<MessageHandler>>,
 }
 
 impl std::fmt::Debug for XfceIpcService {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("XfceIpcService")
-            .field("message_handlers", &"<MessageHandlers>")
             .finish()
     }
 }
@@ -44,7 +41,6 @@ type MessageHandler = Box<dyn Fn(IpcMessage) -> Result<(), IpcError> + Send + Sy
 impl XfceIpcService {
     pub fn new() -> Self {
         Self {
-            message_handlers: RwLock::new(Vec::new()),
         }
     }
     
