@@ -18,7 +18,3 @@ Cargo.lock
 *.swp
 *~
 .DS_Store
-
-# Tauri specific
-src-tauri/target/
-src-tauri/gen/
