@@ -10,7 +10,6 @@ members = [
     "panel-plugins/separator",
     "panel-plugins/showdesktop",
     "xfce4-settings",
-    "pulsectl-rs",
 ]
 
 [workspace.dependencies]
@@ -49,7 +48,6 @@ linicon = "2.3"
 x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
 rusqlite = "0.31"
 chrono = "0.4"
-pulsectl = { path = "pulsectl-rs", package = "pulsectl-rs" }
+pulsectl = { package = "pulsectl-rs", version = "0.3.2" }
 libpulse-binding = "2.28"
 libpulse-glib-binding = "2.28"
-pulse = { package = "libpulse-binding", version = "2.28" }
