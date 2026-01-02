@@ -6,7 +6,8 @@ use x11rb::protocol::composite::ConnectionExt as CompositeExt;
 use x11rb::protocol::damage::{ConnectionExt as DamageExt, ReportLevel, Damage};
 use x11rb::protocol::render::{ConnectionExt as RenderExt, CreatePictureAux, Picture};
 use x11rb::protocol::xfixes::ConnectionExt as XFixesExt;
-use x11rb::protocol::shape::ConnectionExt as ShapeExt;
+use x11rb::protocol::shape::{ConnectionExt as ShapeExt, SO, SK};
+use x11rb::protocol::sync::ConnectionExt as SyncExt;
 use x11rb::wrapper::ConnectionExt as _;
 use x11rb::protocol::Event;
 use tracing::{info, debug, warn, error};
@@ -30,7 +31,8 @@ pub enum SnapZone {
 }
 
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+
 pub enum DragState {
     None,
     Moving {
@@ -70,6 +72,7 @@ pub struct WindowManager {
     pub last_click_time: u32,
     pub last_click_window: Window,
     pub mru_stack: Vec<Window>,
+    pub focused_window: Option<Window>,
     pub settings_manager: SettingsManager,
     pub unmanaged_windows: HashMap<Window, UnmanagedWindow>,
     pub error_tracker: ErrorTracker,
@@ -162,6 +165,7 @@ impl WindowManager {
             last_click_time: 0,
             last_click_window: x11rb::NONE,
             mru_stack: Vec::new(),
+            focused_window: None,
             settings_manager,
             unmanaged_windows: HashMap::new(),
             error_tracker,
@@ -205,6 +209,7 @@ impl WindowManager {
         
         // Check for _NET_WM_DESKTOP
         let mut workspace = self.current_workspace;
+
         let reply = self.ctx.conn.get_property(
             false,
             win,
@@ -224,23 +229,61 @@ impl WindowManager {
         }
         
         let geom = self.ctx.conn.get_geometry(win)?.reply()?;
-        
         let mut x = geom.x;
         let mut y = geom.y;
         
-        // Fetch Window Type for Placement
-        let mut is_dialog = false;
+        // Fetch Window Type
         let mut window_types = Vec::new();
+        let mut is_dialog = false;
         let type_reply = self.ctx.conn.get_property(false, win, self.ctx.atoms._NET_WM_WINDOW_TYPE, AtomEnum::ATOM, 0, 1024)?.reply();
         if let Ok(prop) = type_reply {
             if prop.type_ == u32::from(AtomEnum::ATOM) && prop.format == 32 {
                 for atom in prop.value32().unwrap() {
                     window_types.push(atom);
-                    if atom == self.ctx.atoms._NET_WM_WINDOW_TYPE_DIALOG {
-                        is_dialog = true;
-                    }
+                    if atom == self.ctx.atoms._NET_WM_WINDOW_TYPE_DIALOG { is_dialog = true; }
                 }
             }
+        }
+
+        let is_dock = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_DOCK);
+        let is_desktop = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_DESKTOP);
+
+        // Fetch Window State
+        let mut is_fullscreen = false;
+        let mut is_maximized = false;
+        let mut is_modal = false;
+        let mut is_sticky = false;
+        let mut demands_attention = false;
+        let mut skip_taskbar = false;
+        let mut skip_pager = false;
+        let mut is_shaded = false;
+        let mut is_above = false;
+        let mut is_below = false;
+        if let Ok(reply) = self.ctx.conn.get_property(false, win, self.ctx.atoms._NET_WM_STATE, AtomEnum::ATOM, 0, 1024)?.reply() {
+            if reply.type_ == u32::from(AtomEnum::ATOM) && reply.format == 32 {
+                for atom in reply.value32().unwrap() {
+                    if atom == self.ctx.atoms._NET_WM_STATE_FULLSCREEN { is_fullscreen = true; }
+                    else if atom == self.ctx.atoms._NET_WM_STATE_MAXIMIZED_VERT || atom == self.ctx.atoms._NET_WM_STATE_MAXIMIZED_HORZ { is_maximized = true; }
+                    else if atom == self.ctx.atoms._NET_WM_STATE_MODAL { is_modal = true; }
+                    else if atom == self.ctx.atoms._NET_WM_STATE_STICKY { is_sticky = true; }
+                    else if atom == self.ctx.atoms._NET_WM_STATE_DEMANDS_ATTENTION { demands_attention = true; }
+                    else if atom == self.ctx.atoms._NET_WM_STATE_SKIP_TASKBAR { skip_taskbar = true; }
+                    else if atom == self.ctx.atoms._NET_WM_STATE_SKIP_PAGER { skip_pager = true; }
+                    else if atom == self.ctx.atoms._NET_WM_STATE_SHADED { is_shaded = true; }
+                    else if atom == self.ctx.atoms._NET_WM_STATE_ABOVE { is_above = true; }
+                    else if atom == self.ctx.atoms._NET_WM_STATE_BELOW { is_below = true; }
+                }
+            }
+        }
+
+        if is_sticky { workspace = 0xFFFFFFFF; }
+
+        // Smart Placement if position is 0,0 (ported from xfwm4 clientPlace)
+        if x == 0 && y == 0 && !is_dock && !is_desktop {
+             let (nx, ny) = self.place_window(geom.width, geom.height);
+             x = nx;
+             y = ny;
+             debug!("Smart placed window {} at ({}, {})", win, x, y);
         }
         
         // Fetch Transient For
@@ -255,65 +298,97 @@ impl WindowManager {
             }
         }
         
-        let is_dock = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_DOCK);
-        let is_desktop = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_DESKTOP);
-        let is_fullscreen = window_types.contains(&self.ctx.atoms._NET_WM_STATE_FULLSCREEN);
-        
+        let (group_leader, accepts_input, is_urgent) = self.read_wm_hints(win);
+        let client_leader = self.read_client_leader(win);
 
+        let user_time_window = self.read_user_time_window(win);
+        let startup_id = self.read_startup_id(win);
+        let user_time = if let Some(utw) = user_time_window {
+             self.read_user_time(utw)
+        } else {
+             self.read_user_time(win)
+        };
+        let pid = self.read_pid(win);
+        let frame_extents = self.read_frame_extents(win);
 
-        let is_csd = self.has_csd(win);
+        let (gravity, _min_w, _min_h, _max_w, _max_h) = self.read_size_hints(win);
+        let sync_counter = self.read_sync_counter(win);
+        let is_shaped = self.read_is_shaped(win);
         
+        let is_splash = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_SPLASH);
+        let is_utility = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_UTILITY);
+        let is_toolbar = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_TOOLBAR);
+        let is_menu = window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_MENU);
+
         let (motif_decor, motif_title) = self.read_motif_hints(win);
         
-        let (border_width, title_height) = if is_dock || is_fullscreen || is_desktop || !motif_decor || is_csd {
-            (0, 0)
-        } else if !motif_title {
-            (BORDER_WIDTH, 0)
-        } else {
-            (BORDER_WIDTH, TITLE_HEIGHT)
-        };
+        let is_csd = self.has_csd_hint(win);
+        let (border, title) = if is_fullscreen || is_desktop || is_dock || !motif_decor || is_csd || is_splash || is_menu { (0, 0) } else if !motif_title || is_toolbar || is_utility { (BORDER_WIDTH, 0) } else { (BORDER_WIDTH, TITLE_HEIGHT) };
         
-        use crate::window::{LAYER_DOCK, LAYER_NORMAL, LAYER_FULLSCREEN, LAYER_DESKTOP};
+        use crate::window::{LAYER_DOCK, LAYER_NORMAL, LAYER_FULLSCREEN, LAYER_DESKTOP, LAYER_ONTOP, LAYER_BELOW, LAYER_NOTIFICATION};
         let layer = if is_desktop {
             LAYER_DESKTOP
         } else if is_dock {
             LAYER_DOCK
         } else if is_fullscreen {
             LAYER_FULLSCREEN
+        } else if is_above {
+            LAYER_ONTOP
+        } else if is_below {
+            LAYER_BELOW
+        } else if is_splash || is_menu {
+            LAYER_ONTOP 
+        } else if window_types.contains(&self.ctx.atoms._NET_WM_WINDOW_TYPE_NOTIFICATION) {
+            LAYER_NOTIFICATION
         } else {
             LAYER_NORMAL
         };
-
-        if (x <= 1 || y <= 1) && !is_dock && !is_desktop {
-            let screen = &self.ctx.conn.setup().roots[self.ctx.screen_num];
-            
-            if is_dialog {
-                let (nx, ny) = center_window(screen.width_in_pixels, screen.height_in_pixels, geom.width, geom.height);
-                x = nx;
-                y = ny;
-            } else {
-                 let origins: Vec<(i16, i16)> = self.clients.values().map(|c| (c.x, c.y)).collect();
-                 let (nx, ny) = cascade_placement(screen.width_in_pixels, screen.height_in_pixels, geom.width, geom.height, &origins);
-                 x = nx;
-                 y = ny;
-            }
-        }
         
-        // Force Desktops to 0,0 and screen size if they are intended to be background
-        let (fix_x, fix_y, fix_w, fix_h) = if is_desktop {
-            (0, 0, self.ctx.screen_width, self.ctx.screen_height)
+        // Final Frame coordinates calculation
+        let (frame_x, frame_y) = if x == 0 && y == 0 && !is_dock && !is_desktop {
+             let (nx, ny) = self.place_window(geom.width, geom.height);
+             debug!("Smart placed window {} at ({}, {})", win, nx, ny);
+             (nx, ny)
+        } else if (x <= 1 || y <= 1) && !is_dock && !is_desktop && !is_splash && !is_menu {
+             // Handle "near corner" placement with centering or cascading
+             let screen = &self.ctx.conn.setup().roots[self.ctx.screen_num];
+             if is_dialog || is_utility {
+                 let (nx, ny) = center_window(screen.width_in_pixels, screen.height_in_pixels, geom.width, geom.height);
+                 (nx, ny)
+             } else {
+                  let origins: Vec<(i16, i16)> = self.clients.values().map(|c| (c.x, c.y)).collect();
+                  let (nx, ny) = cascade_placement(screen.width_in_pixels, screen.height_in_pixels, geom.width, geom.height, &origins);
+                  (nx, ny)
+             }
         } else {
-            (x, y, geom.width, geom.height)
+             // Explicitly provided coordinates are for client area (usually)
+             let mut tx = x;
+            let mut ty = y;
+             Self::gravitate(gravity, 1, border, title, &mut tx, &mut ty);
+             (tx - border as i16, ty - (title + border) as i16)
         };
 
-        let frame_geom = FrameGeometry::from_client(fix_x, fix_y, fix_w, fix_h, border_width, title_height);
+        let (fix_x, fix_y, fix_w, fix_h) = if is_desktop {
+            (0, 0, self.ctx.screen_width as u16, self.ctx.screen_height as u16)
+        } else {
+            (frame_x, frame_y, geom.width, geom.height)
+        };
+
+        let frame_geom = FrameGeometry {
+            x: fix_x,
+            y: fix_y,
+            width: fix_w + (2 * border),
+            height: fix_h + title + (2 * border),
+            client_x: border as i16,
+            client_y: (title + border) as i16,
+        };
         debug!("Frame geometry for window {}: {:?}", win, frame_geom);
         let frame_win = self.ctx.conn.generate_id()?;
         
         // Listen for frame events (decorations) and motion
         let values = CreateWindowAux::new()
-            .event_mask(EventMask::SUBSTRUCTURE_NOTIFY | EventMask::SUBSTRUCTURE_REDIRECT | EventMask::EXPOSURE | EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE)
-            .background_pixel(0x333333)
+            .event_mask(EventMask::SUBSTRUCTURE_NOTIFY | EventMask::SUBSTRUCTURE_REDIRECT | EventMask::EXPOSURE | EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE | EventMask::PROPERTY_CHANGE)
+            .background_pixel(0)
             .border_pixel(0x000000);
             
         self.ctx.conn.create_window(
@@ -349,6 +424,10 @@ impl WindowManager {
         
         self.ctx.conn.reparent_window(win, frame_win, frame_geom.client_x, frame_geom.client_y)?;
         
+        // HACK: Force NorthWest gravity on the client window to avoid it moving 
+        // relative to the frame when the frame resizes. Ported from xfwm4 client.c.
+        let _ = self.ctx.conn.change_window_attributes(win, &x11rb::protocol::xproto::ChangeWindowAttributesAux::new().win_gravity(Some(x11rb::protocol::xproto::Gravity::NORTH_WEST)));
+        
         // Initial stacking order: Desktops stay at the bottom, others go to top
         let mut aux = x11rb::protocol::xproto::ConfigureWindowAux::new();
         if is_desktop {
@@ -359,9 +438,18 @@ impl WindowManager {
         let _ = self.ctx.conn.configure_window(frame_win, &aux);
         debug!("Created frame window {} for client {} (stacking: {:?})", frame_win, win, if is_desktop { "BELOW" } else { "ABOVE" });
         
+        if let Some(utw) = user_time_window {
+            if utw != win {
+                let _ = self.ctx.conn.change_window_attributes(utw, &x11rb::protocol::xproto::ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
+            }
+        }
+        
         if workspace == self.current_workspace || workspace == 0xFFFFFFFF {
+
+
              self.ctx.conn.map_window(frame_win)?;
              self.ctx.conn.map_window(win)?;
+             let _ = self.update_window_shape(win);
         }
         
         let mut client = Client::new(
@@ -372,14 +460,61 @@ impl WindowManager {
             fix_h
         );
         client.frame = Some(frame_win);
+        client.is_csd = is_csd;
         client.name = name;
         client.workspace = workspace;
         client.window_type = window_types;
         client.transient_for = transient_for;
+        client.group_leader = group_leader;
+        client.client_leader = client_leader;
+        client.user_time = user_time;
+        client.user_time_window = user_time_window;
+        client.is_modal = is_modal;
+        client.is_fullscreen = is_fullscreen;
+        client.is_maximized = is_maximized;
+        client.is_sticky = is_sticky;
+        client.demands_attention = demands_attention;
+        client.skip_taskbar = skip_taskbar;
+        client.skip_pager = skip_pager;
+        client.is_shaded = is_shaded;
+        client.is_above = is_above;
+        client.is_below = is_below;
+        client.startup_id = startup_id;
+
+        client.frame_extents = frame_extents;
+        client.gravity = gravity;
         client.layer = layer;
+
         client.is_desktop = is_desktop;
         client.is_dock = is_dock;
         client.is_fullscreen = is_fullscreen;
+        client.accepts_input = accepts_input;
+        client.pid = pid;
+        client.is_urgent = is_urgent;
+        client.sync_counter = sync_counter;
+        client.is_shaped = is_shaped;
+        client.opacity = self.read_opacity(win);
+
+        // Select Shape events
+        let _ = ShapeExt::shape_select_input(&self.ctx.conn, win, true);
+        
+        // Send initial ConfigureNotify to let client know its position
+        self.send_configure_notify(win);
+
+        // Set EWMH Frame Extents (Standard and GTK variants)
+        let (border, title) = if client.is_desktop || client.is_dock || client.is_fullscreen { (0, 0) } else { (crate::window::frame::BORDER_WIDTH, crate::window::frame::TITLE_HEIGHT) };
+        let extents = [
+            border as u32, // left
+            border as u32, // right
+            (title + border) as u32, // top
+            border as u32, // bottom
+        ];
+        let _ = self.ctx.conn.change_property32(PropMode::REPLACE, win, self.ctx.atoms._NET_FRAME_EXTENTS, AtomEnum::CARDINAL, &extents);
+        let _ = self.ctx.conn.change_property32(PropMode::REPLACE, win, self.ctx.atoms._GTK_FRAME_EXTENTS, AtomEnum::CARDINAL, &extents);
+
+
+
+
         
         if self.compositor.active {
              let frame_geom = self.ctx.conn.get_geometry(frame_win)?.reply()?;
@@ -437,11 +572,12 @@ impl WindowManager {
         }
 
 
-        let width = geom.width + (2 * border_width);
-        let height = geom.height + title_height + (2 * border_width);
+        let (border, title) = if client.is_desktop || client.is_dock || client.is_fullscreen { (0, 0) } else { (crate::window::frame::BORDER_WIDTH, crate::window::frame::TITLE_HEIGHT) };
+        let width = geom.width + (2 * border);
+        let height = geom.height + title + (2 * border);
         debug!("Drawing decoration for frame {} (title: {})", frame_win, client.name);
         let _ = self.error_tracker.warn_if_failed(
-            draw_decoration(&self.ctx, frame_win, &client.name, width, height, title_height),
+            draw_decoration(&self.ctx, frame_win, &client.name, width, height, title),
             "draw initial decoration",
             crate::window::error::ErrorCategory::Window
         );
@@ -449,6 +585,15 @@ impl WindowManager {
         self.clients.insert(win, client);
         self.mru_stack.retain(|&w| w != win);
         self.mru_stack.insert(0, win);
+        
+        // Create XSync Alarm if supported
+        if let Err(e) = self.client_create_xsync_alarm(win) {
+             warn!("Failed to create XSync alarm for window {}: {}", win, e);
+        }
+        
+        // Focus the new window (ported from xfwm4 clientFrame)
+        let _ = self.focus_window(win);
+        
         Ok(())
     }
 
@@ -477,6 +622,11 @@ impl WindowManager {
                 let _ = self.ctx.conn.reparent_window(win, self.ctx.root_window, client_x, client_y);
             }
             self.mru_stack.retain(|&w| w != win);
+            
+            // Focus next window in MRU stack (ported from xfwm4 clientFocusTop)
+            if let Some(&next) = self.mru_stack.first() {
+                let _ = self.focus_window(next);
+            }
         }
         Ok(())
     }
@@ -595,14 +745,15 @@ impl WindowManager {
                    
                    let w = client.width + (2 * b);
                    let h = client.height + t + (2 * b);
-                   return Some((client.picture, content_pic, client.x, client.y, w, h, b, t, client.width, client.height));
+                   let has_shadow = !client.is_csd && !client.is_desktop && !client.is_dock;
+                   return Some((client.picture, content_pic, client.x, client.y, w, h, b, t, client.width, client.height, has_shadow, client.opacity));
                 }
             }
             None
         });
 
         let unmanaged_list = self.unmanaged_windows.values().map(|u| {
-            (None, u.picture, u.x, u.y, u.width, u.height, 0, 0, u.width, u.height)
+            (None, u.picture, u.x, u.y, u.width, u.height, 0, 0, u.width, u.height, false, 0xFFFFFFFF)
         });
         
         let all_items = sorted_clients.chain(unmanaged_list);
@@ -788,6 +939,27 @@ impl WindowManager {
         if client.is_minimized {
             states.push(self.ctx.atoms._NET_WM_STATE_HIDDEN);
         }
+        if Some(window) == self.focused_window {
+            states.push(self.ctx.atoms._NET_WM_STATE_FOCUSED);
+        }
+        if client.demands_attention {
+            states.push(self.ctx.atoms._NET_WM_STATE_DEMANDS_ATTENTION);
+        }
+        if client.skip_taskbar {
+            states.push(self.ctx.atoms._NET_WM_STATE_SKIP_TASKBAR);
+        }
+        if client.skip_pager {
+            states.push(self.ctx.atoms._NET_WM_STATE_SKIP_PAGER);
+        }
+        if client.is_shaded {
+            states.push(self.ctx.atoms._NET_WM_STATE_SHADED);
+        }
+        if client.is_above {
+            states.push(self.ctx.atoms._NET_WM_STATE_ABOVE);
+        }
+        if client.is_below {
+            states.push(self.ctx.atoms._NET_WM_STATE_BELOW);
+        }
         
         self.ctx.conn.change_property32(
             PropMode::REPLACE,
@@ -842,7 +1014,11 @@ impl WindowManager {
 
     fn update_net_workarea(&self) -> Result<()> {
         let (x, y, w, h) = self.calculate_workarea();
-        let workarea = [x as u32, y as u32, w as u32, h as u32];
+        let single_wa = [x as u32, y as u32, w as u32, h as u32];
+        let mut workarea = Vec::with_capacity(16);
+        for _ in 0..4 {
+            workarea.extend_from_slice(&single_wa);
+        }
         self.ctx.conn.change_property32(PropMode::REPLACE, self.ctx.root_window, self.ctx.atoms._NET_WORKAREA, AtomEnum::CARDINAL, &workarea)?;
         Ok(())
     }
@@ -887,53 +1063,91 @@ impl WindowManager {
         false
     }
 
-    pub fn focus_window(&mut self, window: Window) -> Result<()> {
+        pub fn focus_window(&mut self, window: Window) -> Result<()> {
         use x11rb::protocol::xproto::{InputFocus, ClientMessageEvent, ClientMessageData, EventMask};
         
         info!("🎯 FOCUS: Attempting to focus window {}", window);
         
+        let mut target_window = window;
         if let Some(client) = self.clients.get(&window) {
-            info!("🎯 FOCUS: Window {} exists, name='{}', frame={:?}", 
-                  window, client.name, client.frame);
-                  
-            if self.is_protocol_supported(window, self.ctx.atoms.WM_TAKE_FOCUS) {
-                 let event = ClientMessageEvent {
-                    response_type: x11rb::protocol::xproto::CLIENT_MESSAGE_EVENT,
-                    format: 32,
-                    window,
-                    type_: self.ctx.atoms.WM_PROTOCOLS,
-                    data: ClientMessageData::from([self.ctx.atoms.WM_TAKE_FOCUS, x11rb::CURRENT_TIME, 0, 0, 0]),
-                    sequence: 0,
-                };
-                match self.ctx.conn.send_event(false, window, EventMask::NO_EVENT, event) {
-                    Ok(_) => info!("✓ FOCUS: Sent WM_TAKE_FOCUS to window {}", window),
-                    Err(e) => warn!("Failed to send WM_TAKE_FOCUS to window {}: {}", window, e),
-                }
-            } else {
-                info!("ℹ️ FOCUS: WM_TAKE_FOCUS not supported by window {}", window);
+            // Check for modals (secret sauce part 1)
+            if let Some(modal) = self.get_modal_for(client) {
+                info!("🎯 FOCUS: Window {} has modal {}, focusing modal instead", window, modal);
+                target_window = modal;
             }
-
-            // Set input focus to the client window (not the frame!)
-            match self.ctx.conn.set_input_focus(InputFocus::POINTER_ROOT, window, x11rb::CURRENT_TIME) {
-                Ok(_) => {
-                    info!("✓ FOCUS: Successfully set input focus to window {}", window);
-                    
-                    // Update _NET_ACTIVE_WINDOW
-                    if let Err(e) = self.ctx.conn.change_property32(PropMode::REPLACE, self.ctx.root_window, self.ctx.atoms._NET_ACTIVE_WINDOW, AtomEnum::WINDOW, &[window]) {
-                        warn!("Failed to update _NET_ACTIVE_WINDOW: {}", e);
-                    } else {
-                        info!("✓ FOCUS: Updated _NET_ACTIVE_WINDOW property");
-                    }
-                },
-                Err(e) => {
-                    error!("❌ FOCUS: Failed to set input focus to window {}: {}", window, e);
-                }
-            }
-        } else {
-            warn!("⚠ FOCUS: Window {} not found in clients", window);
         }
-        self.mru_stack.retain(|&w| w != window);
-        self.mru_stack.insert(0, window);
+
+    let mut update_new_state = false;
+    let (accepts_input, layer, user_time, is_modal, name) = {
+        if let Some(client) = self.clients.get_mut(&target_window) {
+            if client.demands_attention {
+                client.demands_attention = false;
+                update_new_state = true;
+            }
+            (client.accepts_input, client.layer, client.user_time, client.is_modal, client.name.clone())
+        } else {
+            return Ok(());
+        }
+    };
+
+    if update_new_state {
+        let _ = self.update_net_wm_state(target_window);
+    }
+
+    // Focus Stealing Prevention
+    if let Some(&current_focus) = self.mru_stack.first() {
+        if current_focus != target_window {
+            if let Some(focused_client) = self.clients.get(&current_focus) {
+                let mut prevent = false;
+                if focused_client.layer > layer {
+                    prevent = true;
+                }
+                if user_time == 0 || Self::timestamp_is_before(user_time, focused_client.user_time) {
+                    prevent = true;
+                }
+                if self.drag_state != DragState::None {
+                    prevent = true;
+                }
+                if prevent && !is_modal {
+                     info!("🎯 FOCUS: Prevention active for window {}", target_window);
+                     return Ok(());
+                }
+            }
+        }
+    }
+
+    info!("🎯 FOCUS: Focusing window {}, name='{}'", target_window, name);
+    
+    let supports_take_focus = self.is_protocol_supported(target_window, self.ctx.atoms.WM_TAKE_FOCUS);
+    if supports_take_focus {
+         let event = ClientMessageEvent {
+            response_type: x11rb::protocol::xproto::CLIENT_MESSAGE_EVENT,
+            format: 32,
+            window: target_window,
+            type_: self.ctx.atoms.WM_PROTOCOLS,
+            data: ClientMessageData::from([self.ctx.atoms.WM_TAKE_FOCUS, x11rb::CURRENT_TIME, 0, 0, 0]),
+            sequence: 0,
+        };
+        let _ = self.ctx.conn.send_event(false, target_window, EventMask::NO_EVENT, event);
+    }
+
+    if accepts_input {
+        match self.ctx.conn.set_input_focus(InputFocus::POINTER_ROOT, target_window, x11rb::CURRENT_TIME) {
+            Ok(_) => {
+                let old_focus = self.focused_window;
+                self.focused_window = Some(target_window);
+                let _ = self.ctx.conn.change_property32(PropMode::REPLACE, self.ctx.root_window, self.ctx.atoms._NET_ACTIVE_WINDOW, AtomEnum::WINDOW, &[target_window]);
+                if let Some(old) = old_focus {
+                    let _ = self.update_net_wm_state(old);
+                }
+                let _ = self.update_net_wm_state(target_window);
+            },
+            Err(e) => error!("❌ FOCUS: Failed for window {}: {}", target_window, e),
+        }
+    }
+        
+        self.mru_stack.retain(|&w| w != target_window);
+        self.mru_stack.insert(0, target_window);
         Ok(())
     }
 
@@ -957,8 +1171,270 @@ impl WindowManager {
         (true, true)
     }
 
-    fn has_csd(&self, window: Window) -> bool {
-        // 1. Check for _GTK_FRAME_EXTENTS
+    fn read_wm_hints(&self, window: Window) -> (Option<Window>, bool, bool) {
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms.WM_HINTS, AtomEnum::ANY, 0, 9) {
+            if let Ok(reply) = cookie.reply() {
+                if reply.format == 32 && reply.value_len >= 1 {
+                    if let Some(mut vals) = reply.value32() {
+                        let flags = vals.next().unwrap_or(0);
+                        let input = vals.next().unwrap_or(1);
+                        let _initial_state = vals.next().unwrap_or(1);
+                        let _icon_pixmap = vals.next().unwrap_or(0);
+                        let _icon_window = vals.next().unwrap_or(0);
+                        let _icon_x = vals.next().unwrap_or(0);
+                        let _icon_y = vals.next().unwrap_or(0);
+                        let _icon_mask = vals.next().unwrap_or(0);
+                        let window_group = vals.next().unwrap_or(0);
+
+                        let group_leader = if (flags & (1 << 6)) != 0 { Some(window_group) } else { None };
+                        let accepts_input = if (flags & (1 << 0)) != 0 { input != 0 } else { true };
+                        let is_urgent = (flags & (1 << 8)) != 0;
+                        return (group_leader, accepts_input, is_urgent);
+                    }
+                }
+            }
+        }
+        (None, true, false)
+    }
+
+
+    fn read_user_time(&self, window: Window) -> u32 {
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms._NET_WM_USER_TIME, AtomEnum::CARDINAL, 0, 1) {
+             if let Ok(reply) = cookie.reply() {
+                 if let Some(val) = reply.value32().and_then(|mut i| i.next()) {
+                     return val;
+                 }
+             }
+        }
+        0
+    }
+
+    fn read_opacity(&self, window: Window) -> u32 {
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms._NET_WM_WINDOW_OPACITY, AtomEnum::CARDINAL, 0, 1) {
+             if let Ok(reply) = cookie.reply() {
+                 if let Some(val) = reply.value32().and_then(|mut i| i.next()) {
+                     return val;
+                 }
+             }
+        }
+        0xFFFFFFFF
+    }
+
+    fn read_pid(&self, window: Window) -> u32 {
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms._NET_WM_PID, AtomEnum::CARDINAL, 0, 1) {
+             if let Ok(reply) = cookie.reply() {
+                 if let Some(val) = reply.value32().and_then(|mut i| i.next()) {
+                     return val;
+                 }
+             }
+        }
+        0
+    }
+
+    fn read_frame_extents(&self, window: Window) -> (u32, u32, u32, u32) {
+
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms._GTK_FRAME_EXTENTS, AtomEnum::CARDINAL, 0, 4) {
+            if let Ok(reply) = cookie.reply() {
+                if let Some(mut vals) = reply.value32() {
+                    let left = vals.next().unwrap_or(0);
+                    let right = vals.next().unwrap_or(0);
+                    let top = vals.next().unwrap_or(0);
+                    let bottom = vals.next().unwrap_or(0);
+                    return (left, right, top, bottom);
+                }
+            }
+        }
+        (0, 0, 0, 0)
+    }
+
+    fn read_sync_counter(&self, window: Window) -> Option<u32> {
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms._NET_WM_SYNC_REQUEST_COUNTER, AtomEnum::CARDINAL, 0, 1) {
+            if let Ok(reply) = cookie.reply() {
+                if reply.format == 32 && reply.value_len >= 1 {
+                    if let Some(mut vals) = reply.value32() {
+                        return vals.next();
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn read_is_shaped(&self, window: Window) -> bool {
+        if let Ok(reply) = ShapeExt::shape_query_extents(&self.ctx.conn, window) {
+            if let Ok(reply) = reply.reply() {
+                return reply.bounding_shaped;
+            }
+        }
+        false
+    }
+
+    fn is_modal(&self, window: Window) -> bool {
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms._NET_WM_STATE, AtomEnum::ATOM, 0, 1024) {
+            if let Ok(reply) = cookie.reply() {
+                if let Some(vals) = reply.value32() {
+                    for atom in vals {
+                        if atom == self.ctx.atoms._NET_WM_STATE_MODAL {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    fn same_group(&self, c1: &Client, c2: &Client) -> bool {
+        if c1.window == c2.window { return true; }
+        if let Some(g1) = c1.group_leader {
+            if let Some(g2) = c2.group_leader {
+                if g1 == g2 { return true; }
+            }
+            if g1 == c2.window { return true; }
+        }
+        if let Some(g2) = c2.group_leader {
+            if g2 == c1.window { return true; }
+        }
+        false
+    }
+
+    fn is_transient_for(&self, c1: &Client, c2: &Client) -> bool {
+        if let Some(transient_for) = c1.transient_for {
+            if transient_for != self.ctx.root_window {
+                return transient_for == c2.window;
+            } else if c2.transient_for.is_none() {
+                // Transients for group ONLY apply to top-level windows (not other transients)
+                // This ported logic from xfwm4/src/transients.c
+                return self.same_group(c1, c2);
+            }
+        }
+        false
+    }
+
+    fn is_modal_for(&self, c1: &Client, c2: &Client) -> bool {
+        if c1.is_modal {
+            return self.is_transient_for(c1, c2);
+        }
+        false
+    }
+
+    fn get_modal_for(&self, client: &Client) -> Option<Window> {
+        // Search mru stack for a modal window that is transient for this client or its group
+        for &win in self.mru_stack.iter() {
+            if let Some(other) = self.clients.get(&win) {
+                if self.is_modal_for(other, client) {
+                    return Some(win);
+                }
+            }
+        }
+        None
+    }
+
+    fn timestamp_is_before(time1: u32, time2: u32) -> bool {
+        if time1 == 0 { return true; }
+        if time2 == 0 { return false; }
+        
+        // Wrapping sub for 32-bit timestamps
+        let diff = time2.wrapping_sub(time1);
+        diff < (u32::MAX >> 1)
+    }
+
+    fn read_user_time_window(&self, window: Window) -> Option<Window> {
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms._NET_WM_USER_TIME_WINDOW, AtomEnum::WINDOW, 0, 1) {
+            if let Ok(reply) = cookie.reply() {
+                if let Some(val) = reply.value32().and_then(|mut i| i.next()) {
+                    return Some(val);
+                }
+            }
+        }
+        None
+    }
+
+    fn read_client_leader(&self, window: Window) -> Option<Window> {
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms.WM_CLIENT_LEADER, AtomEnum::WINDOW, 0, 1) {
+            if let Ok(reply) = cookie.reply() {
+                if let Some(val) = reply.value32().and_then(|mut i| i.next()) {
+                    return Some(val);
+                }
+            }
+        }
+        None
+    }
+
+    fn read_size_hints(&self, window: Window) -> (i32, i16, i16, u16, u16) {
+        // Returns (gravity, min_w, min_h, max_w, max_h)
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, AtomEnum::WM_NORMAL_HINTS, AtomEnum::ANY, 0, 18) {
+            if let Ok(reply) = cookie.reply() {
+                if reply.format == 32 && reply.value_len >= 15 {
+                    if let Some(vals) = reply.value32() {
+                        let data: Vec<u32> = vals.collect();
+                        let flags = data[0];
+                        let min_w = if flags & (1 << 4) != 0 { data[5] as i16 } else { 0 };
+                        let min_h = if flags & (1 << 4) != 0 { data[6] as i16 } else { 0 };
+                        let max_w = if flags & (1 << 5) != 0 { data[7] as u16 } else { 0 };
+                        let max_h = if flags & (1 << 5) != 0 { data[8] as u16 } else { 0 };
+                        let gravity = if flags & (1 << 8) != 0 && data.len() >= 18 { data[17] as i32 } else { 1 };
+                        
+                        return (gravity, min_w, min_h, max_w, max_h);
+                    }
+                }
+            }
+        }
+        (1, 0, 0, 0, 0)
+    }
+
+    fn gravitate(gravity: i32, mode: i32, border: u16, title: u16, x: &mut i16, y: &mut i16) {
+        let fl = border as i16;
+        let fr = border as i16;
+        let ft = (title + border) as i16;
+        let fb = border as i16;
+
+        let (dx, dy) = match gravity {
+            5 => ((fl - fr + 1) / 2, (ft - fb + 1) / 2), // Center
+            2 => ((fl - fr + 1) / 2, ft),               // North
+            8 => ((fl - fr + 1) / 2, -fb),              // South
+            6 => (-fr, (ft - fb + 1) / 2),              // East
+            4 => (fl, (ft - fb + 1) / 2),               // West
+            1 => (fl, ft),                              // NorthWest
+            3 => (-fr, ft),                             // NorthEast
+            7 => (fl, -fb),                             // SouthWest
+            9 => (-fr, -fb),                            // SouthEast
+            _ => (0, 0),                                // Static or others
+        };
+
+        *x += dx * mode as i16;
+        *y += dy * mode as i16;
+    }
+
+    fn send_configure_notify(&self, window: Window) {
+        if let Some(client) = self.clients.get(&window) {
+            let (b, t) = if client.is_desktop || client.is_dock || client.is_fullscreen || client.is_csd { (0, 0) } else { (crate::window::frame::BORDER_WIDTH, crate::window::frame::TITLE_HEIGHT) };
+            
+            let event = x11rb::protocol::xproto::ConfigureNotifyEvent {
+                response_type: x11rb::protocol::xproto::CONFIGURE_NOTIFY_EVENT,
+                sequence: 0,
+                event: window,
+                window,
+                above_sibling: x11rb::NONE,
+                x: client.x + b as i16,
+                y: client.y + (t + b) as i16,
+                width: client.width,
+                height: client.height,
+                border_width: 0,
+                override_redirect: false,
+            };
+            let _ = self.ctx.conn.send_event(false, window, EventMask::STRUCTURE_NOTIFY, event);
+        }
+    }
+
+    fn find_client_by_user_time_window(&self, window: Window) -> Option<Window> {
+
+        self.clients.iter().find(|(_, c)| c.user_time_window == Some(window)).map(|(&w, _)| w)
+    }
+
+    fn has_csd_hint(&self, window: Window) -> bool {
+
+
         if let Ok(cookie) = self.ctx.conn.get_property(
             false,
             window,
@@ -968,16 +1444,15 @@ impl WindowManager {
             4
         ) {
             if let Ok(reply) = cookie.reply() {
-                if !reply.value.is_empty() {
-                    debug!("Window {} has _GTK_FRAME_EXTENTS - treating as CSD", window);
-                    return true;
-                }
+                return !reply.value.is_empty();
             }
         }
         false
     }
 
     #[allow(dropping_copy_types)]
+
+
     pub fn handle_event(&mut self, event: Event) -> Result<bool> {
         debug!("Received event: {:?}", event);
         let mut needs_paint = false;
@@ -992,22 +1467,127 @@ impl WindowManager {
                 }
             }
             Event::ConfigureRequest(event) => {
+                let sibling_resolved = if event.value_mask.contains(ConfigWindow::SIBLING) {
+                    self.find_client_by_frame(event.sibling).map(|c| c.window).unwrap_or(event.sibling)
+                } else {
+                    event.sibling
+                };
+
                 if let Some(client) = self.clients.get_mut(&event.window) {
-                    let mut frame_aux = ConfigureWindowAux::new();
-                    if event.value_mask.contains(ConfigWindow::X) { client.x = event.x; frame_aux = frame_aux.x(Some(event.x as i32)); }
-                    if event.value_mask.contains(ConfigWindow::Y) { client.y = event.y; frame_aux = frame_aux.y(Some(event.y as i32)); }
-                    if event.value_mask.contains(ConfigWindow::WIDTH) { client.width = event.width; frame_aux = frame_aux.width(Some(event.width as u32)); }
-                    if event.value_mask.contains(ConfigWindow::HEIGHT) { client.height = event.height; frame_aux = frame_aux.height(Some(event.height as u32)); }
+                    let mut mask = event.value_mask;
                     
-                    if let Some(frame) = client.frame {
-                         let _ = self.ctx.conn.configure_window(frame, &frame_aux);
-                         let (border, title) = if client.is_fullscreen || client.is_desktop || client.is_dock { (0, 0) } else { (BORDER_WIDTH, TITLE_HEIGHT) };
-                         let _ = self.ctx.conn.configure_window(event.window, &ConfigureWindowAux::new().width(Some(client.width as u32)).height(Some(client.height as u32)));
-                         if event.value_mask.intersects(ConfigWindow::WIDTH | ConfigWindow::HEIGHT) {
-                             let _ = draw_decoration(&self.ctx, frame, &client.name, client.width + 2*border, client.height + title + 2*border, title);
-                         }
+                    if client.is_fullscreen || client.is_maximized {
+                         mask = ConfigWindow::from(u16::from(mask) & !(u16::from(ConfigWindow::X) | u16::from(ConfigWindow::Y) | u16::from(ConfigWindow::WIDTH) | u16::from(ConfigWindow::HEIGHT)));
+                    }
+
+                    let (b, t) = if client.is_fullscreen || client.is_desktop || client.is_dock || client.is_csd { (0, 0) } else { (BORDER_WIDTH, TITLE_HEIGHT) };
+                    
+                    let mut req_x = if mask.contains(ConfigWindow::X) { event.x } else { client.x + b as i16 };
+                    let mut req_y = if mask.contains(ConfigWindow::Y) { event.y } else { client.y + (t + b) as i16 };
+                    let req_w = if mask.contains(ConfigWindow::WIDTH) { event.width } else { client.width };
+                    let req_h = if mask.contains(ConfigWindow::HEIGHT) { event.height } else { client.height };
+
+                    // 1. Gravitation of requested coordinates
+                    if mask.intersects(ConfigWindow::X | ConfigWindow::Y) {
+                         let mut tx = req_x;
+                         let mut ty = req_y;
+                         Self::gravitate(client.gravity, 1, b, t, &mut tx, &mut ty);
+                         if mask.contains(ConfigWindow::X) { req_x = tx; }
+                         if mask.contains(ConfigWindow::Y) { req_y = ty; }
+                    }
+
+                    // 2. Gravitation due to size change (dw, dh)
+                    let mut dw = 0i16;
+                    let mut dh = 0i16;
+                    match client.gravity {
+                        5 => { // Center
+                            dw = ((client.width as i32 - req_w as i32) / 2) as i16;
+                            dh = ((client.height as i32 - req_h as i32) / 2) as i16;
+                        },
+                        2 => { // North
+                            dw = ((client.width as i32 - req_w as i32) / 2) as i16;
+                        },
+                        8 => { // South
+                            dw = ((client.width as i32 - req_w as i32) / 2) as i16;
+                            dh = (client.height as i32 - req_h as i32) as i16;
+                        },
+                        6 => { // East
+                            dw = (client.width as i32 - req_w as i32) as i16;
+                            dh = ((client.height as i32 - req_h as i32) / 2) as i16;
+                        },
+                        4 => { // West
+                            dh = ((client.height as i32 - req_h as i32) / 2) as i16;
+                        },
+                        3 => { // NorthEast
+                            dw = (client.width as i32 - req_w as i32) as i16;
+                        },
+                        7 => { // SouthWest
+                            dh = (client.height as i32 - req_h as i32) as i16;
+                        },
+                        9 => { // SouthEast
+                            dw = (client.width as i32 - req_w as i32) as i16;
+                            dh = (client.height as i32 - req_h as i32) as i16;
+                        },
+                        _ => {}
+                    }
+
+                    if !mask.contains(ConfigWindow::X) && mask.contains(ConfigWindow::WIDTH) && dw != 0 {
+                        req_x = (client.x + b as i16) + dw;
+                        mask |= ConfigWindow::X;
+                    }
+                    if !mask.contains(ConfigWindow::Y) && mask.contains(ConfigWindow::HEIGHT) && dh != 0 {
+                        req_y = (client.y + (t + b) as i16) + dh;
+                        mask |= ConfigWindow::Y;
+                    }
+
+                    let frame_x = req_x - b as i16;
+                    let frame_y = req_y - (t + b) as i16;
+
+                    if mask.contains(ConfigWindow::X) && frame_x == client.x { mask.remove(ConfigWindow::X); }
+                    if mask.contains(ConfigWindow::Y) && frame_y == client.y { mask.remove(ConfigWindow::Y); }
+                    if mask.contains(ConfigWindow::WIDTH) && req_w == client.width { mask.remove(ConfigWindow::WIDTH); }
+                    if mask.contains(ConfigWindow::HEIGHT) && req_h == client.height { mask.remove(ConfigWindow::HEIGHT); }
+                    if client.is_desktop { mask.remove(ConfigWindow::SIBLING | ConfigWindow::STACK_MODE); }
+
+                    if mask.intersects(ConfigWindow::X | ConfigWindow::Y | ConfigWindow::WIDTH | ConfigWindow::HEIGHT | ConfigWindow::SIBLING | ConfigWindow::STACK_MODE) {
+                        if let Some(frame) = client.frame {
+                            let (b, t) = if client.is_fullscreen || client.is_desktop || client.is_dock || client.is_csd { (0, 0) } else { (BORDER_WIDTH, TITLE_HEIGHT) };
+                            
+                            let mut aux = x11rb::protocol::xproto::ConfigureWindowAux::new();
+                            if mask.contains(ConfigWindow::X) { aux = aux.x(req_x as i32); client.x = req_x; }
+                            if mask.contains(ConfigWindow::Y) { aux = aux.y(req_y as i32); client.y = req_y; }
+                            
+                            let mut resized = false;
+                            if mask.contains(ConfigWindow::WIDTH) { 
+                                let fw = req_w + (2 * b);
+                                aux = aux.width(fw as u32); 
+                                client.width = req_w; 
+                                resized = true;
+                            }
+                            if mask.contains(ConfigWindow::HEIGHT) { 
+                                let fh = req_h + t + (2 * b);
+                                aux = aux.height(fh as u32); 
+                                client.height = req_h; 
+                                resized = true;
+                            }
+                            if mask.contains(ConfigWindow::SIBLING) { aux = aux.sibling(sibling_resolved); }
+                            if mask.contains(ConfigWindow::STACK_MODE) { aux = aux.stack_mode(event.stack_mode); }
+                            
+                            let _ = self.ctx.conn.configure_window(frame, &aux);
+                            
+                            if resized {
+                                let _ = self.ctx.conn.configure_window(event.window, &x11rb::protocol::xproto::ConfigureWindowAux::new().width(client.width as u32).height(client.height as u32));
+                                if let Err(_) = draw_decoration(&self.ctx, event.window, &client.name, client.width + 2*b, client.height + t + 2*b, t) { }
+                                let _ = self.update_window_shape(event.window);
+                            }
+                        }
+                        needs_paint = true;
+                        self.send_configure_notify(event.window);
+                    } else {
+                        self.send_configure_notify(event.window);
                     }
                 } else {
+                    // Unmanaged window
                     let mut aux = ConfigureWindowAux::new();
                     if event.value_mask.contains(ConfigWindow::X) { aux = aux.x(Some(event.x as i32)); }
                     if event.value_mask.contains(ConfigWindow::Y) { aux = aux.y(Some(event.y as i32)); }
@@ -1016,8 +1596,8 @@ impl WindowManager {
                     if event.value_mask.contains(ConfigWindow::STACK_MODE) { aux = aux.stack_mode(Some(event.stack_mode)); }
                     let _ = self.ctx.conn.configure_window(event.window, &aux);
                 }
-                needs_paint = true;
             }
+
             Event::MapNotify(event) => {
                 if event.window != self.compositor.overlay_window 
                     && !self.clients.contains_key(&event.window) 
@@ -1085,39 +1665,122 @@ impl WindowManager {
                 }
             }
             Event::DamageNotify(event) => { 
+                if self.clients.contains_key(&event.drawable) { needs_paint = true; }
+                if self.unmanaged_windows.contains_key(&event.drawable) { needs_paint = true; }
                 let _ = self.ctx.conn.damage_subtract(event.damage, x11rb::NONE, x11rb::NONE); 
-                
-                // Prevent infinite loops: ignore damage on our own overlay or the root window
-                if event.drawable != self.compositor.overlay_window && event.drawable != self.ctx.root_window {
-                    debug!("DamageNotify for window {}", event.drawable);
-                    needs_paint = true; 
+            }
+            Event::ShapeNotify(event) => {
+                let win = event.affected_window;
+                let is_shaped = event.shaped;
+                if let Some(client) = self.clients.get_mut(&win) {
+                    client.is_shaped = is_shaped;
+                    debug!("Shape updated for window {} (shaped: {})", win, is_shaped);
+                    let _ = self.update_window_shape(win);
+                    needs_paint = true;
+                }
+            }
+            Event::SyncAlarmNotify(event) => {
+                if let Some(client) = self.clients.values_mut().find(|c| c.sync_alarm == Some(event.alarm)) {
+                    client.sync_waiting = false;
+                    debug!("XSync Alarm for window {} - waiting finished", client.window);
                 }
             }
             Event::PropertyNotify(event) => {
-                 if event.atom == self.ctx.atoms._NET_WM_STRUT || event.atom == self.ctx.atoms._NET_WM_STRUT_PARTIAL {
-                      if let Ok(strut) = self.read_strut_property(event.window) {
-                          if let Some(client) = self.clients.get_mut(&event.window) {
+                 let mut target_win = event.window;
+                 if !self.clients.contains_key(&target_win) {
+                     if let Some(w) = self.find_client_by_user_time_window(event.window) {
+                         target_win = w;
+                     } else {
+                         return Ok(false);
+                     }
+                 }
+
+                 if event.atom == self.ctx.atoms._NET_WM_WINDOW_OPACITY {
+                      let opacity = self.read_opacity(target_win);
+                      if let Some(client) = self.clients.get_mut(&target_win) {
+                          client.opacity = opacity;
+                          needs_paint = true;
+                      }
+                 } else if event.atom == self.ctx.atoms._NET_WM_STRUT || event.atom == self.ctx.atoms._NET_WM_STRUT_PARTIAL {
+                      if let Ok(strut) = self.read_strut_property(target_win) {
+                          if let Some(client) = self.clients.get_mut(&target_win) {
                                client.strut = strut;
                                let _ = self.update_net_workarea();
                           }
                       }
                  } else if event.atom == self.ctx.atoms._NET_WM_NAME {
-                      if let Some(client) = self.clients.get_mut(&event.window) {
-                          let name_reply = self.ctx.conn.get_property(false, event.window, self.ctx.atoms._NET_WM_NAME, self.ctx.atoms.UTF8_STRING, 0, 1024)?.reply();
-                          if let Ok(prop) = name_reply {
-                              if let Ok(name) = String::from_utf8(prop.value) { client.name = name;
-                                  if let Some(frame) = client.frame {
-                                      let _ = self.ctx.conn.send_event(false, frame, EventMask::EXPOSURE, x11rb::protocol::xproto::ExposeEvent { response_type: x11rb::protocol::xproto::EXPOSE_EVENT, sequence: 0, window: frame, x: 0, y: 0, width: 0, height: 0, count: 0 });
-                                  }
+                      if let Some(client) = self.clients.get_mut(&target_win) {
+                           let name_reply = self.ctx.conn.get_property(false, target_win, self.ctx.atoms._NET_WM_NAME, self.ctx.atoms.UTF8_STRING, 0, 1024)?.reply();
+                           if let Ok(prop) = name_reply {
+                               if let Ok(name) = String::from_utf8(prop.value) { client.name = name;
+                                   if let Some(frame) = client.frame {
+                                       let _ = self.ctx.conn.send_event(false, frame, EventMask::EXPOSURE, x11rb::protocol::xproto::ExposeEvent { response_type: x11rb::protocol::xproto::EXPOSE_EVENT, sequence: 0, window: frame, x: 0, y: 0, width: 0, height: 0, count: 0 });
+                                   }
+                               }
+                           }
+                      }
+                 } else if event.atom == self.ctx.atoms._GTK_FRAME_EXTENTS {
+                      let frame_extents = self.read_frame_extents(target_win);
+                      let is_csd = self.has_csd_hint(target_win);
+                      if let Some(client) = self.clients.get_mut(&target_win) {
+                          if client.is_csd != is_csd || client.frame_extents != frame_extents {
+                              client.is_csd = is_csd;
+                              client.frame_extents = frame_extents;
+                              debug!("CSD/Extents changed for window {} (csd: {}, extents: {:?})", target_win, is_csd, frame_extents);
+                              needs_paint = true;
+                          }
+                      }
+                 } else if event.atom == self.ctx.atoms._NET_WM_USER_TIME {
+                      let user_time = self.read_user_time(event.window); // Read from event.window which might be utw
+                      if let Some(client) = self.clients.get_mut(&target_win) {
+                           client.user_time = user_time;
+                           debug!("User time updated for window {} to {}", target_win, user_time);
+                      }
+                 } else if event.atom == self.ctx.atoms.WM_HINTS {
+                      let (group_leader, accepts_input, is_urgent) = self.read_wm_hints(target_win);
+                      if let Some(client) = self.clients.get_mut(&target_win) {
+                           client.group_leader = group_leader;
+                           client.accepts_input = accepts_input;
+                           client.is_urgent = is_urgent;
+                           debug!("WM_HINTS updated for window {} (accepts_input: {}, urgent: {})", target_win, accepts_input, is_urgent);
+                      }
+                 } else if event.atom == self.ctx.atoms.WM_TRANSIENT_FOR {
+                      let trans_reply = self.ctx.conn.get_property(false, target_win, self.ctx.atoms.WM_TRANSIENT_FOR, AtomEnum::WINDOW, 0, 1)?.reply();
+                      if let Ok(prop) = trans_reply {
+                          if let Some(parent) = prop.value32().and_then(|mut i| i.next()) {
+                              if let Some(client) = self.clients.get_mut(&target_win) {
+                                  client.transient_for = Some(parent);
                               }
                           }
                       }
+                 } else if event.atom == self.ctx.atoms._NET_WM_STATE {
+                      let is_modal = self.is_modal(target_win);
+                      if let Some(client) = self.clients.get_mut(&target_win) {
+                           client.is_modal = is_modal;
+                      }
+                 } else if event.atom == self.ctx.atoms._NET_WM_USER_TIME_WINDOW {
+                      let utw = self.read_user_time_window(target_win);
+                      if let Some(w) = utw {
+                           let _ = self.ctx.conn.change_window_attributes(w, &x11rb::protocol::xproto::ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
+                           let user_time = self.read_user_time(w);
+                           if let Some(client) = self.clients.get_mut(&target_win) {
+                                client.user_time_window = Some(w);
+                                client.user_time = user_time;
+                           }
+                      } else {
+                           if let Some(client) = self.clients.get_mut(&target_win) {
+                                client.user_time_window = None;
+                           }
+                      }
                  }
+
+
+
             }
             Event::Expose(event) => {
                 if event.count == 0 {
                     if let Some(client) = self.find_client_by_frame(event.window) {
-                        let (border, title) = if client.is_fullscreen || client.is_desktop || client.is_dock { (0, 0) } else { (BORDER_WIDTH, TITLE_HEIGHT) };
+                        let (border, title) = if client.is_fullscreen || client.is_desktop || client.is_dock || client.is_csd { (0, 0) } else { (BORDER_WIDTH, TITLE_HEIGHT) };
                         if let Err(_) = draw_decoration(&self.ctx, event.window, &client.name, client.width + 2*border, client.height + title + 2*border, title) { }
                         needs_paint = true;
                     }
@@ -1133,10 +1796,114 @@ impl WindowManager {
                          let _ = self.focus_window(event.window);
                          needs_paint = true;
                      }
+                 } else if event.type_ == self.ctx.atoms.WM_PROTOCOLS {
+                      let data = event.data.as_data32();
+                      if data[0] == self.ctx.atoms._NET_WM_PING {
+                          debug!("🏓 PONG: Window {} is alive!", event.window);
+                      }
                  } else if event.type_ == self.ctx.atoms._NET_WM_STATE {
+                    let data = event.data.as_data32();
+                    let action = data[0]; // 0: remove, 1: add, 2: toggle
+                    let atoms = [data[1], data[2]];
+
+                    for atom in atoms {
+                        if atom == 0 { continue; }
+                        
+                        let mut toggle_fs = false;
+                        let mut toggle_max = false;
+                        
+                        if let Some(client) = self.clients.get_mut(&event.window) {
+                            if atom == self.ctx.atoms._NET_WM_STATE_FULLSCREEN {
+                                let next = match action {
+                                    0 => false, 1 => true, 2 => !client.is_fullscreen, _ => client.is_fullscreen,
+                                };
+                                if next != client.is_fullscreen { toggle_fs = true; }
+                            } else if atom == self.ctx.atoms._NET_WM_STATE_MAXIMIZED_VERT || atom == self.ctx.atoms._NET_WM_STATE_MAXIMIZED_HORZ {
+                                let next = match action {
+                                    0 => false, 1 => true, 2 => !client.is_maximized, _ => client.is_maximized,
+                                };
+                                if next != client.is_maximized { toggle_max = true; }
+                            } else if atom == self.ctx.atoms._NET_WM_STATE_MODAL {
+                                client.is_modal = match action {
+                                    0 => false, 1 => true, 2 => !client.is_modal, _ => client.is_modal,
+                                };
+                            } else if atom == self.ctx.atoms._NET_WM_STATE_DEMANDS_ATTENTION {
+                                client.demands_attention = match action {
+                                    0 => false, 1 => true, 2 => !client.demands_attention, _ => client.demands_attention,
+                                };
+                            } else if atom == self.ctx.atoms._NET_WM_STATE_STICKY {
+                                client.is_sticky = match action {
+                                    0 => false, 1 => true, 2 => !client.is_sticky, _ => client.is_sticky,
+                                };
+                                client.workspace = if client.is_sticky { 0xFFFFFFFF } else { self.current_workspace };
+                            } else if atom == self.ctx.atoms._NET_WM_STATE_SKIP_TASKBAR {
+                                client.skip_taskbar = match action {
+                                    0 => false, 1 => true, 2 => !client.skip_taskbar, _ => client.skip_taskbar,
+                                };
+                            } else if atom == self.ctx.atoms._NET_WM_STATE_SKIP_PAGER {
+                                client.skip_pager = match action {
+                                    0 => false, 1 => true, 2 => !client.skip_pager, _ => client.skip_pager,
+                                };
+                            } else if atom == self.ctx.atoms._NET_WM_STATE_SHADED {
+                                client.is_shaded = match action {
+                                    0 => false, 1 => true, 2 => !client.is_shaded, _ => client.is_shaded,
+                                };
+                                // TODO: shading implementation
+                            } else if atom == self.ctx.atoms._NET_WM_STATE_ABOVE {
+                                client.is_above = match action {
+                                    0 => false, 1 => true, 2 => !client.is_above, _ => client.is_above,
+                                };
+                                if client.is_above { client.is_below = false; client.layer = crate::window::LAYER_ONTOP; }
+                                else { client.layer = crate::window::LAYER_NORMAL; }
+                            } else if atom == self.ctx.atoms._NET_WM_STATE_BELOW {
+                                client.is_below = match action {
+                                    0 => false, 1 => true, 2 => !client.is_below, _ => client.is_below,
+                                };
+                                if client.is_below { client.is_above = false; client.layer = crate::window::LAYER_BELOW; }
+                                else { client.layer = crate::window::LAYER_NORMAL; }
+                            }
+                        }
+                        
+                        if toggle_fs { let _ = self.toggle_fullscreen(event.window); }
+                        if toggle_max { let _ = self.toggle_maximize(event.window); }
+                        let _ = self.update_net_wm_state(event.window);
+                    }
+                    needs_paint = true;
+
+
+                 } else if event.type_ == self.ctx.atoms._NET_WM_MOVERESIZE {
                      let data = event.data.as_data32();
-                     if data[1] == self.ctx.atoms._NET_WM_STATE_MAXIMIZED_VERT || data[1] == self.ctx.atoms._NET_WM_STATE_MAXIMIZED_HORZ { let _ = self.toggle_maximize(event.window); needs_paint = true; }
-                     if data[1] == self.ctx.atoms._NET_WM_STATE_FULLSCREEN { let _ = self.toggle_fullscreen(event.window); needs_paint = true; }
+                     let x = data[0] as i16;
+                     let y = data[1] as i16;
+                     let direction = data[2];
+                     
+                     if let Some(client) = self.clients.get(&event.window) {
+                         if let Some(frame) = client.frame {
+                             if direction == 8 { // _NET_WM_MOVERESIZE_MOVE
+                                 let frame_geom = self.ctx.conn.get_geometry(frame)?.reply()?;
+                                 self.drag_state = DragState::Moving {
+                                     window: event.window,
+                                     start_pointer_x: x,
+                                     start_pointer_y: y,
+                                     start_frame_x: frame_geom.x,
+                                     start_frame_y: frame_geom.y,
+                                     snap: SnapZone::None,
+                                 };
+                                 // Grab pointer to receive motion events
+                                 self.ctx.conn.grab_pointer(
+                                     false,
+                                     self.ctx.root_window,
+                                     EventMask::POINTER_MOTION | EventMask::BUTTON_RELEASE,
+                                     x11rb::protocol::xproto::GrabMode::ASYNC,
+                                     x11rb::protocol::xproto::GrabMode::ASYNC,
+                                     x11rb::NONE,
+                                     self.cursors.normal,
+                                     x11rb::CURRENT_TIME,
+                                 )?;
+                                 info!("Started MOVERESIZE_MOVE for window {}", event.window);
+                             }
+                         }
+                     }
                  }
             }
             Event::KeyPress(event) => {
@@ -1253,7 +2020,9 @@ impl WindowManager {
                                    let _ = self.ctx.conn.configure_window(frame, &x11rb::protocol::xproto::ConfigureWindowAux::new().width(Some(frame_w)).height(Some(frame_h)));
                                    let _ = self.ctx.conn.configure_window(window, &x11rb::protocol::xproto::ConfigureWindowAux::new().width(Some(new_w as u32)).height(Some(new_h as u32)));
                                    let _ = draw_decoration(&self.ctx, frame, &client.name, new_w + 2*border, new_h + title + 2*border, title);
+                                   let _ = self.update_window_shape(window);
                                }
+                               self.client_xsync_request(window);
                            }
                            needs_paint = true;
                      }
@@ -1278,6 +2047,71 @@ impl WindowManager {
             _ => {}
         }
         Ok(needs_paint)
+    }
+
+    fn place_window(&self, width: u16, height: u16) -> (i16, i16) {
+        let (wx, wy, ww, wh) = self.calculate_workarea();
+        let existing: Vec<(i16, i16)> = self.clients.values()
+            .filter(|c| c.workspace == self.current_workspace)
+            .map(|c| (c.x, c.y))
+            .collect();
+        
+        let (x, y) = cascade_placement(ww, wh, width, height, &existing);
+        (x + wx, y + wy)
+    }
+
+    fn client_xsync_request(&mut self, window: Window) {
+        if let Some(client) = self.clients.get_mut(&window) {
+            if client.sync_waiting { return; }
+            if let Some(_counter) = client.sync_counter {
+                client.sync_next_value += 1;
+                let data = [
+                    self.ctx.atoms._NET_WM_SYNC_REQUEST.into(),
+                    x11rb::CURRENT_TIME,
+                    (client.sync_next_value & 0xFFFFFFFF) as u32,
+                    (client.sync_next_value >> 32) as u32,
+                    0,
+                ];
+                let event = x11rb::protocol::xproto::ClientMessageEvent {
+                    response_type: x11rb::protocol::xproto::CLIENT_MESSAGE_EVENT,
+                    format: 32,
+                    window,
+                    type_: self.ctx.atoms.WM_PROTOCOLS,
+                    data: x11rb::protocol::xproto::ClientMessageData::from(data),
+                    sequence: 0,
+                };
+                let _ = self.ctx.conn.send_event(false, window, EventMask::NO_EVENT, event);
+                client.sync_waiting = true;
+            }
+        }
+    }
+
+    fn client_create_xsync_alarm(&mut self, window: Window) -> Result<()> {
+        use x11rb::protocol::sync::{CreateAlarmAux, Trigger, TESTTYPE, VALUETYPE, Int64};
+        
+        if let Some(client) = self.clients.get_mut(&window) {
+            if let Some(counter) = client.sync_counter {
+                let alarm = self.ctx.conn.generate_id()?;
+                let trigger = Trigger {
+                    counter,
+                    wait_type: VALUETYPE::RELATIVE,
+                    wait_value: Int64 { hi: 0, lo: 1 },
+                    test_type: TESTTYPE::POSITIVE_COMPARISON,
+                };
+                let aux = CreateAlarmAux::new()
+                    .counter(Some(trigger.counter))
+                    .value_type(Some(trigger.wait_type))
+                    .value(Some(trigger.wait_value))
+                    .test_type(Some(trigger.test_type))
+                    .delta(Some(Int64 { hi: 0, lo: 1 }))
+                    .events(1u32);
+                
+                SyncExt::sync_create_alarm(&self.ctx.conn, alarm, &aux)?;
+                client.sync_alarm = Some(alarm);
+                debug!("Created Pulse alarm {} for window {}", alarm, window);
+            }
+        }
+        Ok(())
     }
 
     pub fn run(&mut self) -> Result<()> {
@@ -1317,6 +2151,38 @@ impl WindowManager {
             }
         }
         Ok(())
+    }
+
+    fn update_window_shape(&self, window: Window) -> Result<()> {
+        let client = if let Some(c) = self.clients.get(&window) { c } else { return Ok(()); };
+        let frame = if let Some(f) = client.frame { f } else { return Ok(()); };
+        
+        let (border, title) = if client.is_fullscreen || client.is_desktop || client.is_dock || client.is_csd { 
+            (0, 0) 
+        } else { 
+            (crate::window::frame::BORDER_WIDTH, crate::window::frame::TITLE_HEIGHT) 
+        };
+
+        // Set Input shape when using XShape extension
+        // 1. Start with frame's own bounding shape as the input shape
+        self.ctx.conn.shape_combine(SO::SET, SK::INPUT, SK::BOUNDING, frame, 0, 0, frame)?;
+        
+        // 2. Subtract the area where the client window is (bounding shape)
+        self.ctx.conn.shape_combine(SO::SUBTRACT, SK::INPUT, SK::BOUNDING, frame, border as i16, (title + border) as i16, window)?;
+        
+        // 3. Union the client window's own input shape back in
+        self.ctx.conn.shape_combine(SO::UNION, SK::INPUT, SK::INPUT, frame, border as i16, (title + border) as i16, window)?;
+        
+        Ok(())
+    }
+
+    fn read_startup_id(&self, window: Window) -> Option<String> {
+        if let Ok(cookie) = self.ctx.conn.get_property(false, window, self.ctx.atoms._NET_STARTUP_ID, self.ctx.atoms.UTF8_STRING, 0, 1024) {
+             if let Ok(reply) = cookie.reply() {
+                 return String::from_utf8(reply.value).ok();
+             }
+        }
+        None
     }
 }
 

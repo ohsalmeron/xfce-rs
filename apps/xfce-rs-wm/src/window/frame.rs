@@ -13,16 +13,6 @@ pub struct FrameGeometry {
 }
 
 impl FrameGeometry {
-    pub fn from_client(x: i16, y: i16, width: u16, height: u16, border_width: u16, title_height: u16) -> Self {
-        Self {
-            x: x.saturating_sub(border_width as i16),
-            y: y.saturating_sub(title_height as i16 + border_width as i16),
-            width: width + (2 * border_width),
-            height: height + title_height + (2 * border_width),
-            client_x: border_width as i16,
-            client_y: (title_height + border_width) as i16,
-        }
-    }
 
     pub const RESIZE_HANDLE_SIZE: i16 = 10;
 
@@ -109,26 +99,6 @@ pub enum FramePart {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_from_client_geometry() {
-        // x=100, y=100, w=800, h=600, border=4, title=24
-        let frame = FrameGeometry::from_client(100, 100, 800, 600, 4, 24);
-        
-        // Frame should wrap client
-        // x = 100 - 4 = 96
-        // y = 100 - (24 + 4) = 72
-        assert_eq!(frame.x, 96);
-        assert_eq!(frame.y, 72);
-        
-        // w = 800 + 8 = 808
-        // h = 600 + 24 + 8 = 632
-        assert_eq!(frame.width, 808);
-        assert_eq!(frame.height, 632);
-        
-        // client relative
-        assert_eq!(frame.client_x, 4);
-        assert_eq!(frame.client_y, 28);
-    }
 
     #[test]
     fn test_hit_test_execution() {

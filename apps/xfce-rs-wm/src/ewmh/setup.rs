@@ -59,6 +59,11 @@ pub fn setup_hints(ctx: &Context) -> Result<()> {
         ctx.atoms._NET_WM_STATE_FULLSCREEN,
         ctx.atoms._NET_WM_STATE_MAXIMIZED_VERT,
         ctx.atoms._NET_WM_STATE_MAXIMIZED_HORZ,
+        ctx.atoms._NET_WM_STATE_HIDDEN,
+        ctx.atoms._NET_WM_STATE_STICKY,
+        ctx.atoms._NET_WM_STATE_DEMANDS_ATTENTION,
+        ctx.atoms._NET_WM_STATE_SKIP_TASKBAR,
+        ctx.atoms._NET_WM_STATE_SKIP_PAGER,
         ctx.atoms._NET_WM_WINDOW_TYPE,
         ctx.atoms._NET_WM_WINDOW_TYPE_NORMAL,
         ctx.atoms._NET_WM_WINDOW_TYPE_DOCK,
@@ -69,7 +74,33 @@ pub fn setup_hints(ctx: &Context) -> Result<()> {
         ctx.atoms.WM_DELETE_WINDOW,
         ctx.atoms.WM_TAKE_FOCUS,
         ctx.atoms.WM_TRANSIENT_FOR,
+        ctx.atoms._NET_WM_USER_TIME,
+        ctx.atoms._NET_WM_STATE_MODAL,
+        ctx.atoms._GTK_FRAME_EXTENTS,
+        ctx.atoms._NET_WM_WINDOW_TYPE_MENU,
+        ctx.atoms._NET_WM_WINDOW_TYPE_TOOLBAR,
+        ctx.atoms._NET_WM_WINDOW_TYPE_UTILITY,
+        ctx.atoms._NET_WM_WINDOW_TYPE_SPLASH,
+        ctx.atoms._NET_WM_PING,
+        ctx.atoms._NET_WM_SYNC_REQUEST,
+        ctx.atoms._NET_WM_SYNC_REQUEST_COUNTER,
+        ctx.atoms._NET_FRAME_EXTENTS,
+        ctx.atoms._NET_WM_STATE_FOCUSED,
+        ctx.atoms._NET_STARTUP_ID,
+        ctx.atoms._NET_WM_WINDOW_OPACITY,
+        ctx.atoms._NET_WM_WINDOW_TYPE_DROPDOWN_MENU,
+        ctx.atoms._NET_WM_WINDOW_TYPE_POPUP_MENU,
+        ctx.atoms._NET_WM_WINDOW_TYPE_TOOLTIP,
+        ctx.atoms._NET_WM_WINDOW_TYPE_NOTIFICATION,
+        ctx.atoms._NET_WM_WINDOW_TYPE_COMBO,
+        ctx.atoms._NET_WM_WINDOW_TYPE_DND,
+        ctx.atoms._NET_WM_STATE_SHADED,
+        ctx.atoms._NET_WM_STATE_ABOVE,
+        ctx.atoms._NET_WM_STATE_BELOW,
     ];
+
+
+
     
     ctx.conn.change_property32(
         PropMode::REPLACE,
@@ -93,6 +124,31 @@ pub fn setup_hints(ctx: &Context) -> Result<()> {
         ctx.atoms._NET_CURRENT_DESKTOP,
         AtomEnum::CARDINAL,
         &[0],
+    )?;
+
+    ctx.conn.change_property32(
+        PropMode::REPLACE,
+        ctx.root_window,
+        ctx.atoms._NET_DESKTOP_GEOMETRY,
+        AtomEnum::CARDINAL,
+        &[ctx.screen_width as u32, ctx.screen_height as u32],
+    )?;
+
+    ctx.conn.change_property32(
+        PropMode::REPLACE,
+        ctx.root_window,
+        ctx.atoms._NET_DESKTOP_VIEWPORT,
+        AtomEnum::CARDINAL,
+        &[0, 0, 0, 0, 0, 0, 0, 0], // (0,0) for each of 4 desktops
+    )?;
+
+    let desktop_names = "Alpha\0Beta\0Gamma\0Delta\0";
+    ctx.conn.change_property8(
+        PropMode::REPLACE,
+        ctx.root_window,
+        ctx.atoms._NET_DESKTOP_NAMES,
+        ctx.atoms.UTF8_STRING,
+        desktop_names.as_bytes(),
     )?;
 
     Ok(())

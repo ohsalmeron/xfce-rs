@@ -3,6 +3,9 @@
 
 set -e
 
+# Change to the root directory of the repository
+cd "$(dirname "$0")/.."
+
 # 1. Build release binaries
 echo "Building XFCE-RS in release mode..."
 cargo build --release --workspace

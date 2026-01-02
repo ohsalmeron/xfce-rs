@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-x11rb = { workspace = true, features = ["allow-unsafe-code", "extra-traits", "resource_manager", "cursor", "randr", "composite", "render", "xfixes", "shape", "damage"] }
+x11rb = { workspace = true, features = ["allow-unsafe-code", "extra-traits", "resource_manager", "cursor", "randr", "composite", "render", "xfixes", "shape", "damage", "sync"] }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }

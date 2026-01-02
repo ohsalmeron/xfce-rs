@@ -106,7 +106,7 @@ impl Compositor {
         conn: &C,
         screen_w: u16,
         screen_h: u16,
-        clients: impl Iterator<Item = (Option<Picture>, Picture, i16, i16, u16, u16, u16, u16, u16, u16)>,
+        clients: impl Iterator<Item = (Option<Picture>, Picture, i16, i16, u16, u16, u16, u16, u16, u16, bool, u32)>,
     ) -> Result<()> {
         if !self.active { return Ok(()); }
         
@@ -129,8 +129,8 @@ impl Compositor {
         let client_list: Vec<_> = clients.collect();
 
         // 1. Draw all shadows first
-        for (frame_pic_opt, _, x, y, frame_w, frame_h, _, _, _, _) in &client_list {
-            if frame_pic_opt.is_none() { continue; }
+        for (frame_pic_opt, _, x, y, frame_w, frame_h, _, _, _, _, has_shadow, _) in &client_list {
+            if !has_shadow || frame_pic_opt.is_none() { continue; }
             let shadow_rect = Rectangle {
                 x: x.wrapping_add(6),
                 y: y.wrapping_add(6),
@@ -149,14 +149,26 @@ impl Compositor {
         }
 
         // 2. Draw all windows (Frame + Content)
-        for (frame_pic_opt, content_pic, x, y, frame_w, frame_h, border, title_h, client_w, client_h) in &client_list {
+        for (frame_pic_opt, content_pic, x, y, frame_w, frame_h, border, title_h, client_w, client_h, _, opacity) in &client_list {
+            let mut mask = x11rb::NONE;
+            let mut free_mask = None;
+
+            if *opacity < 0xFFFFFFFF {
+                if let Ok(m) = conn.generate_id() {
+                    let alpha = (*opacity >> 16) as u16;
+                    if let Ok(_) = conn.render_create_solid_fill(m, Color { red: 0, green: 0, blue: 0, alpha }) {
+                        mask = m;
+                        free_mask = Some(m);
+                    }
+                }
+            }
+
             // Composite Frame (decorations) if present
             if let Some(frame_pic) = frame_pic_opt {
-                debug!("Compositing frame picture {} to root picture {} at ({}, {}) with size {}x{}", frame_pic, self.root_picture, x, y, frame_w, frame_h);
                 if let Err(e) = conn.render_composite(
                     x11rb::protocol::render::PictOp::OVER,
                     *frame_pic,
-                    x11rb::NONE,
+                    mask,
                     self.root_picture,
                     0, 0,
                     0, 0,
@@ -169,11 +181,10 @@ impl Compositor {
 
             // Composite Client Content (terminal)
             if *client_w > 0 && *client_h > 0 {
-                debug!("Compositing content picture {} to root picture {} at ({}, {}) with size {}x{}", content_pic, self.root_picture, *x + *border as i16, *y + (*title_h + *border) as i16, client_w, client_h);
                 if let Err(e) = conn.render_composite(
                     x11rb::protocol::render::PictOp::OVER,
                     *content_pic,
-                    x11rb::NONE,
+                    mask,
                     self.root_picture,
                     0, 0,
                     0, 0,
@@ -182,6 +193,10 @@ impl Compositor {
                 ) {
                     warn!("Failed to composite content picture: {}", e);
                 }
+            }
+
+            if let Some(m) = free_mask {
+                let _ = conn.render_free_picture(m);
             }
         }
         conn.flush()?;
