@@ -16,7 +16,6 @@ sudo install -m 755 target/release/xfwm4-rs /usr/local/bin/xfwm4-rs
 sudo install -m 755 target/release/xfce-rs-panel /usr/local/bin/xfce-rs-panel
 sudo install -m 755 target/release/xfce-rs-navigator /usr/local/bin/xfce-rs-navigator
 sudo install -m 755 target/release/xfce-rs-audio /usr/local/bin/xfce-rs-audio
-sudo install -m 755 target/release/xfce-rs-settings /usr/local/bin/xfce-rs-settings
 
 # 3. Install session script
 echo "Installing session script..."

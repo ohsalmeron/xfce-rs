@@ -1,24 +1,25 @@
 [package]
-name = "xfce-rs-clock"
+name = "xfce-rs-tasklist"
 version = "0.1.0"
 edition = "2021"
 authors = ["XFCE.rs Contributors"]
-description = "Clock plugin for XFCE.rs panel"
+description = "Window buttons (tasklist) plugin for XFCE.rs panel"
 license = "GPL-2.0-or-later"
 repository = "https://github.com/ohsalmeron/xfce-rs"
-keywords = ["xfce", "panel", "clock", "time"]
+keywords = ["xfce", "panel", "tasklist", "windows"]
 categories = ["gui"]
 
 [[bin]]
-name = "xfce-rs-clock"
+name = "xfce-rs-tasklist"
 path = "src/main.rs"
 
 [dependencies]
 iced = { workspace = true }
+x11rb = { workspace = true, features = ["allow-unsafe-code"] }
 tokio = { workspace = true, features = ["full"] }
-serde = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-chrono = { workspace = true }
 xfce-rs-ui = { path = "../../crates/xfce-rs-ui" }
 xfce-rs-utils = { path = "../../crates/xfce-rs-utils" }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+clap = { version = "4.0", features = ["derive"] }

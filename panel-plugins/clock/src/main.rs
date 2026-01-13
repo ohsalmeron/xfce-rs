@@ -5,7 +5,8 @@ use chrono::{DateTime, Local};
 use std::time::Duration;
 use xfce_rs_ui::styles;
 use xfce_rs_ui::colors;
-use tracing::info;
+use tracing::{info, warn};
+use xfce_rs_utils::x11_window_props;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt()
@@ -46,7 +47,14 @@ impl ClockApp {
                 current_time: Local::now(),
                 format: "%H:%M".to_string(),
             },
-            Task::none(),
+            Task::perform(async move {
+                // Set X11 window properties after window is created
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                if let Err(e) = x11_window_props::set_plugin_window_properties("Clock") {
+                    warn!("Failed to set plugin window properties: {}", e);
+                }
+                Message::Tick
+            }, |_| Message::Tick),
         )
     }
 

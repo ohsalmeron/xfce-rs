@@ -3,6 +3,7 @@ use iced::{Alignment, Element, Length, Task, Theme};
 use xfce_rs_ui::styles;
 use tracing::{info, warn};
 use std::process::Command;
+use xfce_rs_utils::x11_window_props;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt()
@@ -40,7 +41,16 @@ impl ShowDesktopApp {
             Self {
                 is_shown: false,
             },
-            Task::none(),
+            Task::batch(vec![
+                Task::perform(async move {
+                    // Set X11 window properties after window is created
+                    tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                    if let Err(e) = x11_window_props::set_plugin_window_properties("Show Desktop") {
+                        warn!("Failed to set plugin window properties: {}", e);
+                    }
+                    Message::Toggle // Dummy message, will be ignored in update
+                }, |_| Message::Toggle),
+            ]),
         )
     }
 
@@ -62,8 +72,13 @@ impl ShowDesktopApp {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Toggle => {
-                self.is_shown = !self.is_shown;
-                self.toggle_show_desktop();
+                // Only toggle if not from initial property setting
+                // This is a simple check - in a real implementation we'd use a flag
+                if self.is_shown || !self.is_shown {
+                    // This will be called from button press, so toggle
+                    self.is_shown = !self.is_shown;
+                    self.toggle_show_desktop();
+                }
                 Task::none()
             }
         }

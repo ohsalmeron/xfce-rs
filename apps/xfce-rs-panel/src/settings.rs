@@ -28,6 +28,9 @@ pub struct PanelSettings {
     // Advanced
     pub enable_struts: bool,    // Enable struts (reserve screen space)
     pub keep_below: bool,       // Keep panel below other windows
+    
+    // Plugins
+    pub plugins: Vec<String>,    // List of plugin names to load (in order)
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -99,6 +102,12 @@ impl Default for PanelSettings {
             length_max: None,
             enable_struts: true,
             keep_below: true,
+            plugins: vec![
+                "xfce-rs-tasklist".to_string(),
+                "xfce-rs-clock".to_string(),
+                "xfce-rs-separator".to_string(),
+                "xfce-rs-showdesktop".to_string(),
+            ],
         }
     }
 }
@@ -115,7 +124,11 @@ impl PanelSettings {
         let path = Self::config_path();
         if path.exists() {
             if let Ok(content) = std::fs::read_to_string(&path) {
-                if let Ok(settings) = toml::from_str(&content) {
+                if let Ok(mut settings) = toml::from_str::<PanelSettings>(&content) {
+                    // If plugins field is missing or empty, use defaults (backward compatibility)
+                    if settings.plugins.is_empty() {
+                        settings.plugins = Self::default().plugins;
+                    }
                     return settings;
                 }
             }

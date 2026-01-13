@@ -8,6 +8,15 @@ use crate::plugin_manager::PluginInfo;
 pub struct PluginSlot {
     plugin: PluginInfo,
     is_running: bool,
+    position: Option<PluginPosition>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PluginPosition {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
 }
 
 impl PluginSlot {
@@ -15,7 +24,20 @@ impl PluginSlot {
         Self {
             plugin,
             is_running: false,
+            position: None,
         }
+    }
+
+    pub fn set_position(&mut self, x: f32, y: f32, width: f32, height: f32) {
+        self.position = Some(PluginPosition { x, y, width, height });
+    }
+
+    pub fn position(&self) -> Option<&PluginPosition> {
+        self.position.as_ref()
+    }
+
+    pub fn is_embedded(&self) -> bool {
+        !self.plugin.detached && self.position.is_some()
     }
 
     pub fn view(&self) -> Element<'_, crate::Message> {

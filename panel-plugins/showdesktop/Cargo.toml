@@ -20,3 +20,4 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 zbus = { workspace = true }
 xfce-rs-ui = { path = "../../crates/xfce-rs-ui" }
+xfce-rs-utils = { path = "../../crates/xfce-rs-utils" }

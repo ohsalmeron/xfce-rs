@@ -4,6 +4,8 @@ use regex::Regex;
 use tokio::process;
 use tracing::error;
 
+pub mod x11_window_props;
+
 /// Error types for utilities
 #[derive(Error, Debug)]
 pub enum UtilError {

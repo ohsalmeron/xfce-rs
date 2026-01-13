@@ -2,11 +2,13 @@ use iced::widget::{container, row, mouse_area, button, text, column};
 use iced::{Alignment, Element, Length, Task, Theme, Point};
 use tracing::{info, warn};
 use xfce_rs_ui::styles;
+use std::collections::HashSet;
 
 mod plugin_manager;
 mod plugin_slot;
 mod settings;
 mod settings_app;
+mod x11_window;
 
 use plugin_manager::PluginManager;
 use plugin_slot::PluginSlot;
@@ -86,13 +88,25 @@ impl PanelApp {
         let plugin_manager = PluginManager::new();
         let settings = PanelSettings::load();
         
-        // Discover and load plugins
-        let plugins = plugin_manager.discover_plugins();
-        info!("Discovered {} plugins", plugins.len());
+        // Discover all available plugins
+        let available_plugins = plugin_manager.discover_available_plugins();
+        info!("Discovered {} available plugins", available_plugins.len());
         
-        let app = Self {
+        // Filter plugins by config (maintain order from config)
+        let filtered_plugins: Vec<_> = settings.plugins.iter()
+            .filter_map(|plugin_name| {
+                available_plugins.iter()
+                    .find(|p| &p.name == plugin_name)
+                    .cloned()
+            })
+            .collect();
+        
+        info!("Loading {} plugins from config (out of {} available)", 
+            filtered_plugins.len(), available_plugins.len());
+        
+        let mut app = Self {
             plugin_manager,
-            plugins: plugins.into_iter().map(|p| PluginSlot::new(p)).collect(),
+            plugins: filtered_plugins.into_iter().map(|p| PluginSlot::new(p)).collect(),
             settings,
             context_menu: None,
             mouse_pos: Point::ORIGIN,
@@ -100,13 +114,26 @@ impl PanelApp {
             settings_app: None,
         };
         
+        // Calculate initial plugin positions
+        app.calculate_plugin_positions();
+        
         (
             app,
-            Task::perform(async move {
-                // Small delay to let panel initialize
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                Message::Refresh
-            }, |_| Message::Refresh),
+            Task::batch(vec![
+                Task::perform(async move {
+                    // Small delay to let panel initialize
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                    Message::Refresh
+                }, |_| Message::Refresh),
+                Task::perform(async move {
+                    // Set X11 window properties after window is created
+                    tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                    if let Err(e) = x11_window::set_panel_window_properties("XFCE.rs Panel") {
+                        warn!("Failed to set panel window properties: {}", e);
+                    }
+                    Message::Refresh
+                }, |_| Message::Refresh),
+            ]),
         )
     }
 
@@ -174,10 +201,67 @@ impl PanelApp {
                 let position_changed = new_settings.position != self.settings.position;
                 let mode_changed = new_settings.mode != self.settings.mode;
                 let dark_mode_changed = new_settings.dark_mode != self.settings.dark_mode;
+                let plugins_changed = new_settings.plugins != self.settings.plugins;
                 
-                if size_changed || position_changed || mode_changed || dark_mode_changed {
-                    info!("Settings changed, applying: size={}, position={:?}, mode={:?}", 
-                        new_settings.size, new_settings.position, new_settings.mode);
+                if size_changed || position_changed || mode_changed || dark_mode_changed || plugins_changed {
+                    info!("Settings changed, applying: size={}, position={:?}, mode={:?}, plugins={:?}", 
+                        new_settings.size, new_settings.position, new_settings.mode, new_settings.plugins);
+                    
+                    // Handle plugin changes
+                    if plugins_changed {
+                        let old_plugin_names: std::collections::HashSet<String> = 
+                            self.plugins.iter().map(|p| p.plugin_name().to_string()).collect();
+                        let new_plugin_names: std::collections::HashSet<String> = 
+                            new_settings.plugins.iter().cloned().collect();
+                        
+                        // Stop plugins that were removed
+                        for plugin_name in old_plugin_names.difference(&new_plugin_names) {
+                            info!("Stopping removed plugin: {}", plugin_name);
+                            if let Err(e) = self.plugin_manager.stop_plugin(plugin_name) {
+                                warn!("Failed to stop plugin {}: {}", plugin_name, e);
+                            }
+                        }
+                        
+                        // Discover available plugins and filter by new config
+                        let available_plugins = self.plugin_manager.discover_available_plugins();
+                        let filtered_plugins: Vec<_> = new_settings.plugins.iter()
+                            .filter_map(|plugin_name| {
+                                available_plugins.iter()
+                                    .find(|p| &p.name == plugin_name)
+                                    .cloned()
+                            })
+                            .collect();
+                        
+                        // Update plugin slots (maintain order from config)
+                        self.plugins = filtered_plugins.into_iter()
+                            .map(|p| PluginSlot::new(p))
+                            .collect();
+                        
+                        // Recalculate positions
+                        self.calculate_plugin_positions();
+                        
+                        // Start newly added plugins
+                        let new_plugin_names_list: Vec<String> = self.plugins.iter()
+                            .map(|p| p.plugin_name().to_string())
+                            .filter(|name| !old_plugin_names.contains(name.as_str()))
+                            .collect();
+                        for plugin_name in new_plugin_names_list {
+                            if let Some(slot) = self.plugins.iter().find(|p| p.plugin_name() == &plugin_name) {
+                                info!("Starting newly added plugin: {}", plugin_name);
+                                let plugin_info = slot.plugin_info().clone();
+                                let position = slot.position()
+                                    .map(|pos| (pos.x, pos.y, pos.width, pos.height));
+                                if let Err(e) = self.plugin_manager.start_plugin(&plugin_info, position) {
+                                    warn!("Failed to start plugin {}: {}", plugin_name, e);
+                                } else {
+                                    if let Some(s) = self.plugins.iter_mut()
+                                        .find(|p| p.plugin_name() == plugin_name.as_str()) {
+                                        s.set_running(true);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     
                     self.settings = new_settings.clone();
                     
@@ -210,10 +294,14 @@ impl PanelApp {
             }
             Message::PluginLoaded(name) => {
                 info!("Plugin loaded: {}", name);
-                // Start the plugin
+                // Start the plugin with position
                 if let Some(plugin_info) = self.plugins.iter().find(|p| p.plugin_name() == &name)
                     .map(|p| p.plugin_info().clone()) {
-                    if let Err(e) = self.plugin_manager.start_plugin(&plugin_info) {
+                    let position = self.plugins.iter()
+                        .find(|p| p.plugin_name() == &name)
+                        .and_then(|p| p.position())
+                        .map(|pos| (pos.x, pos.y, pos.width, pos.height));
+                    if let Err(e) = self.plugin_manager.start_plugin(&plugin_info, position) {
                         warn!("Failed to start plugin {}: {}", name, e);
                     } else {
                         // Update plugin slot status
@@ -237,22 +325,114 @@ impl PanelApp {
                 Task::none()
             }
             Message::Refresh => {
-                // Reload plugins
-                let plugins = self.plugin_manager.discover_plugins();
-                let plugin_infos: Vec<_> = plugins.iter().cloned().collect();
-                self.plugins = plugins.into_iter().map(|p| PluginSlot::new(p)).collect();
-                // Auto-start all discovered plugins
-                for plugin_info in plugin_infos {
-                    if let Err(e) = self.plugin_manager.start_plugin(&plugin_info) {
-                        warn!("Failed to start plugin {}: {}", plugin_info.name, e);
-                    } else {
-                        if let Some(slot) = self.plugins.iter_mut()
-                            .find(|p| p.plugin_name() == plugin_info.name.as_str()) {
-                            slot.set_running(true);
+                // Reload plugins based on config
+                let available_plugins = self.plugin_manager.discover_available_plugins();
+                
+                // Filter plugins by config (maintain order from config)
+                let filtered_plugins: Vec<_> = self.settings.plugins.iter()
+                    .filter_map(|plugin_name| {
+                        available_plugins.iter()
+                            .find(|p| &p.name == plugin_name)
+                            .cloned()
+                    })
+                    .collect();
+                
+                // Update plugin slots
+                let current_plugin_names: std::collections::HashSet<String> = 
+                    self.plugins.iter().map(|p| p.plugin_name().to_string()).collect();
+                let new_plugin_names: std::collections::HashSet<String> = 
+                    filtered_plugins.iter().map(|p| p.name.clone()).collect();
+                
+                // Stop plugins that are no longer in config
+                for plugin_name in current_plugin_names.difference(&new_plugin_names) {
+                    if let Err(e) = self.plugin_manager.stop_plugin(plugin_name) {
+                        warn!("Failed to stop plugin {}: {}", plugin_name, e);
+                    }
+                }
+                
+                // Update plugin slots (maintain order from config)
+                self.plugins = filtered_plugins.into_iter()
+                    .map(|p| PluginSlot::new(p))
+                    .collect();
+                
+                // Calculate positions for embedded plugins
+                self.calculate_plugin_positions();
+                
+                // Auto-start all configured plugins
+                let plugin_names: Vec<String> = self.plugins.iter()
+                    .map(|p| p.plugin_name().to_string())
+                    .collect();
+                for plugin_name in plugin_names {
+                    if let Some(slot) = self.plugins.iter().find(|p| p.plugin_name() == &plugin_name) {
+                        let plugin_info = slot.plugin_info().clone();
+                        let position = slot.position()
+                            .map(|pos| (pos.x, pos.y, pos.width, pos.height));
+                        if let Err(e) = self.plugin_manager.start_plugin(&plugin_info, position) {
+                            warn!("Failed to start plugin {}: {}", plugin_info.name, e);
+                        } else {
+                            if let Some(s) = self.plugins.iter_mut()
+                                .find(|p| p.plugin_name() == plugin_name.as_str()) {
+                                s.set_running(true);
+                            }
                         }
                     }
                 }
                 Task::none()
+            }
+        }
+    }
+
+    fn calculate_plugin_positions(&mut self) {
+        // Get panel window dimensions (using default screen size for now)
+        let screen_width = 1920.0;
+        let screen_height = 1080.0;
+        let (panel_width, panel_height) = self.settings.get_window_size(screen_width, screen_height);
+        let (panel_x, panel_y) = self.settings.get_window_position(screen_width, screen_height);
+        
+        // Calculate positions based on panel orientation
+        match self.settings.mode {
+            settings::PanelMode::Horizontal => {
+                // Horizontal panel: plugins arranged left to right
+                let mut current_x = panel_x + 4.0; // Start with padding
+                let plugin_height = panel_height;
+                let spacing = 4.0;
+                
+                for slot in &mut self.plugins {
+                    if !slot.plugin_info().detached {
+                        // For now, use fixed widths. In future, plugins can report their preferred width
+                        let plugin_width = match slot.plugin_name() {
+                            "xfce-rs-tasklist" => 600.0, // Tasklist gets more space
+                            "xfce-rs-clock" => 200.0,
+                            "xfce-rs-separator" => 8.0,
+                            "xfce-rs-showdesktop" => 48.0,
+                            _ => 100.0, // Default width
+                        };
+                        
+                        slot.set_position(current_x, panel_y, plugin_width, plugin_height);
+                        current_x += plugin_width + spacing;
+                    }
+                }
+            }
+            settings::PanelMode::Vertical => {
+                // Vertical panel: plugins arranged top to bottom
+                let mut current_y = panel_y + 4.0; // Start with padding
+                let plugin_width = panel_width;
+                let spacing = 4.0;
+                
+                for slot in &mut self.plugins {
+                    if !slot.plugin_info().detached {
+                        let plugin_height = match slot.plugin_name() {
+                            "xfce-rs-tasklist" => 200.0,
+                            "xfce-rs-clock" => 100.0,
+                            "xfce-rs-separator" => 8.0,
+                            "xfce-rs-showdesktop" => 48.0,
+                            _ => 48.0, // Default height
+                        };
+                        
+                        slot.set_position(panel_x, current_y, plugin_width, plugin_height);
+                        current_y += plugin_height + spacing;
+                    }
+                }
             }
         }
     }

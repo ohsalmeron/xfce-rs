@@ -1,5 +1,7 @@
 use iced::widget::{container, space};
-use iced::{Background, Border, Color, Length, Theme};
+use iced::{Background, Border, Color, Length, Theme, Task};
+use tracing::warn;
+use xfce_rs_utils::x11_window_props;
 
 pub fn main() -> iced::Result {
     iced::application(SeparatorApp::new, SeparatorApp::update, SeparatorApp::view)
@@ -39,16 +41,23 @@ enum SeparatorStyle {
 
 #[derive(Debug, Clone)]
 enum Message {
-    // No messages needed for a simple separator
+    None, // No messages needed for a simple separator
 }
 
 impl SeparatorApp {
-    fn new() -> (Self, iced::Task<Message>) {
+    fn new() -> (Self, Task<Message>) {
         (
             Self {
                 style: SeparatorStyle::Separator,
             },
-            iced::Task::none(),
+            Task::perform(async move {
+                // Set X11 window properties after window is created
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                if let Err(e) = x11_window_props::set_plugin_window_properties("Separator") {
+                    warn!("Failed to set plugin window properties: {}", e);
+                }
+                Message::None
+            }, |_| Message::None),
         )
     }
 
@@ -67,8 +76,8 @@ impl SeparatorApp {
         }
     }
 
-    fn update(&mut self, _message: Message) -> iced::Task<Message> {
-        iced::Task::none()
+    fn update(&mut self, _message: Message) -> Task<Message> {
+        Task::none()
     }
 
     fn separator_style(style: SeparatorStyle) -> impl Fn(&Theme) -> iced::widget::container::Style {
