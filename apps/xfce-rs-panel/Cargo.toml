@@ -3,10 +3,10 @@ name = "xfce-rs-panel"
 version = "0.1.0"
 edition = "2021"
 authors = ["XFCE.rs Contributors"]
-description = "Panel system for XFCE.rs desktop environment"
+description = "Lightweight Wayland panel for XFCE.rs"
 license = "GPL-2.0-or-later"
 repository = "https://github.com/ohsalmeron/xfce-rs"
-keywords = ["xfce", "panel", "desktop"]
+keywords = ["xfce", "panel", "wayland"]
 categories = ["gui"]
 
 [[bin]]
@@ -14,22 +14,17 @@ name = "xfce-rs-panel"
 path = "src/main.rs"
 
 [dependencies]
-iced = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
+wayland-client = "0.31"
+wayland-protocols = { version = "0.31", features = ["client"] }
+wayland-protocols-wlr = { version = "0.3.10", features = ["client"] }
+calloop = "0.14"
+log = "0.4"
+env_logger = "0.11"
+anyhow = "1.0"
+memfd = "0.6"
+libc = "0.2"
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-thiserror = { workspace = true }
-anyhow = { workspace = true }
-x11rb = { workspace = true }
-walkdir = { workspace = true }
+config = { workspace = true }
 dirs = { workspace = true }
 toml = { workspace = true }
-config = { workspace = true }
-zbus = { workspace = true }
-freedesktop-desktop-entry = { workspace = true }
-
-xfce-rs-ui = { path = "../../crates/xfce-rs-ui" }
-xfce-rs-config = { path = "../../crates/xfce-rs-config" }
-xfce-rs-utils = { path = "../../crates/xfce-rs-utils" }
+chrono = { workspace = true }
