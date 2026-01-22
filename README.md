@@ -44,12 +44,14 @@ cargo test --workspace
 cargo watch -x run
 ```
 
-## 📚 Documentation
+## 📦 Components
 
-- [Architecture Overview](docs/architecture.md)
-- [API Documentation](https://docs.rs/xfce-rs)
-- [Development Guide](docs/development.md)
-- [Migration Guide from XFCE](docs/migration.md)
+- **Window Manager** (`apps/xfce-rs-wm`): A Wayland compositor built with Smithay.
+- **Panel** (`apps/xfce-rs-panel`): The desktop panel and taskbar.
+- **Desktop** (`apps/xfce-rs-desktop`): Background and icon manager.
+- **File Manager** (`apps/xfce-rs-thunar`): Fast and lightweight file manager.
+- **Navigator** (`apps/xfce-rs-navigator`): Application launcher and finder.
+- **Audio** (`apps/xfce-rs-audio`): Volume control and audio management.
 
 ---
 
